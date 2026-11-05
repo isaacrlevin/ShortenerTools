@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<PackageReference Include="Azure.Communication.Email" />
+		<PackageReference Include="cronos" />
+		<PackageReference Include="Azure.Data.Tables" />
+		<PackageReference Include="Azure.Identity" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+		<PackageReference Include="Newtonsoft.Json" />
+		<PackageReference Include="UAParser" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="ShortenerTools.Tests" />
+	</ItemGroup>
+</Project>

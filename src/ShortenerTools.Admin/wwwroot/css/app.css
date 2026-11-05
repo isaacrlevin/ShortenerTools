@@ -1,0 +1,60 @@
+html, body {
+    font-family: "Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+h1:focus {
+    outline: none;
+}
+
+p, ul {
+    margin-bottom: 1rem;
+}
+
+ul {
+    padding-left: 1.5rem;
+}
+
+.mainLogo {
+    max-width: 100%;
+    height: auto;
+}
+
+.validation-message {
+    color: var(--mud-palette-error);
+}
+
+.loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    min-height: 200px;
+}
+
+.mud-table-cell {
+    overflow-wrap: anywhere;
+}
+
+#blazor-error-ui {
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 2000;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}

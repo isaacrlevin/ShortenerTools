@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <link href="_content/SocialPoster.Components/app.css" rel="stylesheet" />
+    <link href="_content/SocialPoster.Components/SocialPoster.Components.bundle.scp.css" rel="stylesheet" />
+    <link href="css/app.css" rel="stylesheet" />
+    <link href="ShortenerTools.Admin.styles.css" rel="stylesheet" />
+    <link rel="icon" href="/favicon.ico" />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+<body>
+    <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <script src="_content/SocialPoster.Components/js/composer.js"></script>
+    <script src="js/socialposter-links.js"></script>
+    <script src="_framework/blazor.web.js"></script>
+    <script>
+        window.clipboardCopy = {
+            copyText: function (text) {
+                return navigator.clipboard.writeText(text);
+            }
+        };
+        window.shortenerTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
+    </script>
+</body>
+</html>

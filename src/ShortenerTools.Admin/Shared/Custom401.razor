@@ -1,0 +1,14 @@
+@inject NavigationManager Navigation
+
+<h1>Oops!</h1>
+<MudText Typo="Typo.h5">401 Unauthorized</MudText>
+<AuthorizeView>
+    <Authorized>
+        <MudAlert Severity="Severity.Error">Sorry, you are not authorized to access this resource.</MudAlert>
+    </Authorized>
+    <NotAuthorized>
+        <MudAlert Severity="Severity.Warning">Sorry, please get authenticated.</MudAlert>
+        <MudButton OnClick="@(() => Navigation.NavigateTo("/login", forceLoad: true))" Color="Color.Primary">Log in</MudButton>
+    </NotAuthorized>
+</AuthorizeView>
+<MudButton Href="/">Return Home</MudButton>

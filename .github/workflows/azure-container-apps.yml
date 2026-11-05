@@ -1,0 +1,156 @@
+name: Aspire Azure Container Apps
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Deployment environment
+        type: choice
+        options: [ production ]
+        default: production
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aca-${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && 'production' || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - name: Restore
+        run: dotnet restore src/shortenerTools.sln
+      - name: Build
+        run: dotnet build src/shortenerTools.sln --configuration Release --no-restore
+      - name: Test
+        run: dotnet test src/ShortenerTools.Tests/ShortenerTools.Tests.csproj --configuration Release --no-build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test SocialPoster draft handoff
+        run: node src/tools/Test-SocialPosterLinks.cjs
+      - name: Install Aspire CLI
+        run: dotnet tool install --global Aspire.Cli --version 13.6.1
+      - name: Test safe deployment helper
+        shell: pwsh
+        run: ./src/tools/Test-ProductionDeployment.ps1
+      - name: Validate deployment artifacts without provisioning
+        shell: pwsh
+        run: |
+          $output = Join-Path $env:RUNNER_TEMP 'aca-preview'
+          aspire publish --apphost src/ShortenerTools.AppHost/ShortenerTools.AppHost.csproj --environment Production --non-interactive -o $output
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\src\tools\Test-AcaArtifacts.ps1 -ArtifactPath $output
+      - name: Validate staging guards even with a timer opt-in
+        shell: pwsh
+        run: |
+          $output = Join-Path $env:RUNNER_TEMP 'aca-staging-preview'
+          [Environment]::SetEnvironmentVariable('Parameters__scheduler-disabled', 'false')
+          [Environment]::SetEnvironmentVariable('Parameters__scheduler_disabled', 'false')
+          [Environment]::SetEnvironmentVariable('Parameters__coffee-scheduler-disabled', 'false')
+          [Environment]::SetEnvironmentVariable('Parameters__coffee_scheduler_disabled', 'false')
+          aspire publish --apphost src/ShortenerTools.AppHost/ShortenerTools.AppHost.csproj --environment Staging --non-interactive -o $output
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\src\tools\Test-AcaArtifacts.ps1 -ArtifactPath $output -DeploymentEnvironment Staging
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.environment == 'production'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      Azure__SubscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      Azure__Location: ${{ vars.AZURE_LOCATION }}
+      Azure__ResourceGroup: ${{ vars.AZURE_RESOURCE_GROUP }}
+      Parameters__existing_storage_account: ${{ vars.EXISTING_STORAGE_ACCOUNT }}
+      Parameters__existing_storage_resource_group: ${{ vars.EXISTING_STORAGE_RESOURCE_GROUP }}
+      Parameters__entra_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+      Parameters__entra_client_id: ${{ vars.ENTRA_CLIENT_ID }}
+      Parameters__entra_client_secret: ${{ secrets.ENTRA_CLIENT_SECRET }}
+      Parameters__administrator_object_id: ${{ vars.ADMINISTRATOR_OBJECT_ID }}
+      Parameters__admin_api_key: ${{ secrets.ADMIN_API_KEY }}
+      Parameters__custom_domain: ${{ vars.SHORT_LINK_DOMAIN }}
+      Parameters__redirect_certificate_name: ${{ vars.REDIRECT_CERTIFICATE_NAME }}
+      Parameters__default_redirect_url: ${{ vars.DEFAULT_REDIRECT_URL }}
+      Parameters__social_accounts_connection_string: ${{ secrets.SOCIAL_ACCOUNTS_CONFIG_READWRITE_CONNECTION_STRING }}
+      Parameters__social_accounts_readonly_connection_string: ${{ secrets.SOCIAL_ACCOUNTS_CONFIG_READONLY_CONNECTION_STRING }}
+      Parameters__communication_services_connection_string: ${{ secrets.COMMUNICATION_SERVICES_CONNECTION_STRING }}
+      Parameters__email_from: ${{ secrets.EMAIL_FROM }}
+      Parameters__email_to: ${{ secrets.EMAIL_TO }}
+      ConnectionStrings__chat: ${{ secrets.AZURE_OPENAI_CONNECTION_STRING }}
+      Parameters__azure_openai_deployment_name: ${{ vars.AZURE_OPENAI_DEPLOYMENT_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - name: Install Aspire CLI
+        run: dotnet tool install --global Aspire.Cli --version 13.6.1
+      - name: Validate required production inputs
+        shell: pwsh
+        env:
+          AZURE_DEPLOYMENT_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AZURE_DEPLOYMENT_CLIENT_ID)) {
+            throw 'Missing required production secret: AZURE_CLIENT_ID. No deployment performed.'
+          }
+          ./src/tools/Invoke-ProductionDeployment.ps1 -Mode Validate
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy AppHost model
+        shell: pwsh
+        run: |
+          ./src/tools/Invoke-ProductionDeployment.ps1 -Mode Deploy -EnableScheduler -EnableCoffeeScheduler
+      - name: Enable and verify production timers
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $app = 'shortenertools-scheduled-posts'
+          $group = $env:Azure__ResourceGroup
+          $timers = @(
+            'ShortPostTimer'
+            'COSSTeaserTimer'
+            'COSSAnnouncementTimer'
+            'COSSArchiveTimer'
+          )
+          $settings = $timers | ForEach-Object {
+            "AzureWebJobs.$_.Disabled=false"
+          }
+
+          # Aspire can resolve the module parameters to their disabled defaults.
+          az containerapp update --name $app --resource-group $group `
+            --set-env-vars @settings --output none
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to enable production timers.'
+          }
+
+          $json = az containerapp show --name $app --resource-group $group `
+            --query 'properties.template.containers[0].env' --output json
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to read production timer configuration.'
+          }
+          $environment = $json | ConvertFrom-Json
+          foreach ($timer in $timers) {
+            $setting = @($environment | Where-Object name -EQ "AzureWebJobs.$timer.Disabled")
+            if ($setting.Count -ne 1 -or $setting[0].value -ne 'false') {
+              throw "$timer is not enabled."
+            }
+          }

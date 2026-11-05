@@ -1,0 +1,327 @@
+@page "/urlmanager"
+@attribute [Authorize(Roles = "admin")]
+@using System.Diagnostics
+@using System.Globalization
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@inject ILogger<UrlManager> Logger
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ISnackbar Snackbar
+
+<PageTitle>Links - SocialPoster</PageTitle>
+<h1>Links</h1>
+<MudText Typo="Typo.body1" Class="mb-4">Manage existing shortened links. Compose opens SocialPoster for publishing or
+    scheduling. To create a new link or custom shortcode, use Generate short link on the Compose &amp; schedule page.
+</MudText>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
+}
+<MudStack Row="true" Class="mb-4">
+    <MudButton OnClick="LoadUrls" Disabled="busy">Refresh</MudButton>
+</MudStack>
+
+@if (authorized)
+{
+    <MudDataGrid @ref="urlGrid" T="ShortUrlEntity" ServerData="LoadUrlPage" Filterable="true"
+                 SortMode="SortMode.Multiple"
+                 FilterMode="DataGridFilterMode.ColumnFilterRow" Loading="busy" RowsPerPage="100"
+                 @bind-CurrentPage="currentPage" Dense="true" Hover="true">
+        <Columns>
+            <PropertyColumn Property="x => x.Timestamp" Title="Timestamp" Format="d"
+                            InitialDirection="SortDirection.Descending"/>
+            <TemplateColumn Title="Copy" Sortable="false" Filterable="false">
+                <CellTemplate>
+                    <MudButton Size="Size.Small" OnClick="@(() => CopyToClipboardAsync(context.Item.ShortUrl))">Copy
+                    </MudButton>
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="x => x.RowKey" Title="Vanity">
+                <CellTemplate>
+                    <MudLink Href="@context.Item.ShortUrl" Target="_blank">@context.Item.RowKey</MudLink>
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.Title" Title="Title"/>
+            <PropertyColumn Property="x => x.Url" Title="Url"/>
+            <TemplateColumn Title="Statistics" Sortable="false" Filterable="false">
+                <CellTemplate>
+                    <MudIconButton Icon="@Icons.Material.Filled.BarChart" Color="Color.Primary"
+                                   OnClick="@(() => NavigateToStats(context.Item.RowKey))"
+                                   aria-label="View URL statistics"/>
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                <CellTemplate>
+                    <MudButton Size="Size.Small" Disabled="busy"
+                               OnClick="@(() => ComposeAsync(context.Item.ShortUrl, context.Item.Title, context.Item.Message))">
+                        Compose
+                    </MudButton>
+                    <MudButton Size="Size.Small" Disabled="busy" OnClick="@(() => EditShortUrl(context.Item))">Edit
+                    </MudButton>
+                    <MudButton Size="Size.Small" Disabled="busy" OnClick="@(() => ArchiveShortUrl(context.Item))">
+                        Archive
+                    </MudButton>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+        <LoadingContent>
+            <div class="loading-state" role="status">
+                <MudProgressCircular Indeterminate="true"/>
+                Loading URLs...
+            </div>
+        </LoadingContent>
+        <NoRecordsContent>
+            <MudText>No URLs match the current filters.</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudDataGridPager T="ShortUrlEntity" PageSizeOptions="@(new[] { 15, 30, 50, 100 })"/>
+        </PagerContent>
+    </MudDataGrid>
+}
+
+<MudDialog @bind-Visible="showEditPopup" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Edit Short Url</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (editedUrl != null)
+        {
+            <EditForm Model="editedUrl" OnValidSubmit="SaveUpdatedShortUrl">
+                <DataAnnotationsValidator/>
+                <ValidationSummary/>
+                <MudTextField T="string" Label="Title" @bind-Value="editedUrl.Title" For="@(() => editedUrl.Title)"
+                              Disabled="saving"/>
+                <MudTextField T="string" Label="Message" @bind-Value="editedUrl.Message"
+                              For="@(() => editedUrl.Message)" Lines="5" Disabled="saving"/>
+                <MudTextField T="string" Label="The Url to redirect" @bind-Value="editedUrl.Url"
+                              For="@(() => editedUrl.Url)" Disabled="saving"/>
+                @if (!string.IsNullOrEmpty(dialogError))
+                {
+                    <MudAlert Severity="Severity.Error">@dialogError</MudAlert>
+                }
+                <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+                    <MudButton OnClick="ClosePopup" Disabled="saving">Cancel</MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                               Disabled="saving">
+                        @(saving ? "Saving..." : "Save")
+                    </MudButton>
+                </MudStack>
+            </EditForm>
+        }
+    </DialogContent>
+</MudDialog>
+
+@code {
+    private MudDataGrid<ShortUrlEntity> urlGrid;
+    private bool authorized;
+    private int currentPage;
+    private string previousCriteria;
+    private string loadedQuery;
+    private ListResponse loadedPage;
+    private ShortUrlEntity editedUrl;
+    private bool showEditPopup;
+    private bool busy = true;
+    private bool saving;
+    private string errorMessage;
+    private string dialogError;
+    private readonly DialogOptions dialogOptions = new() { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = false, CloseOnEscapeKey = false };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        authorized = authState.User.IsInRole("admin");
+        if (!authorized)
+            NavigationManager.NavigateTo("/unauthorized");
+    }
+
+    private async Task LoadUrls()
+    {
+        loadedQuery = null;
+        loadedPage = null;
+        if (urlGrid != null)
+            await urlGrid.ReloadServerData();
+    }
+
+    private async Task<GridData<ShortUrlEntity>> LoadUrlPage(GridState<ShortUrlEntity> state, CancellationToken cancellationToken)
+    {
+        if (!authorized)
+            return new GridData<ShortUrlEntity> { Items = Array.Empty<ShortUrlEntity>(), TotalItems = 0 };
+        busy = true;
+        errorMessage = null;
+        try
+        {
+            var query = new UrlListQuery
+            {
+                Skip = state.Page * state.PageSize,
+                Take = state.PageSize,
+                Sorts = state.SortDefinitions.OrderBy(sort => sort.Index)
+                    .Select(sort => new UrlListSort { Column = sort.SortBy, Descending = sort.Descending }).ToList(),
+                Filters = state.FilterDefinitions
+                    .Where(filter => filter.Value != null || filter.Operator is "is empty" or "is not empty")
+                    .Select(filter => new UrlListFilter
+                    {
+                        Column = filter.Column.PropertyName,
+                        Operator = filter.Operator,
+                        Value = filter.Value switch
+                        {
+                            DateTime date => date.ToString("O", CultureInfo.InvariantCulture),
+                            DateTimeOffset date => date.ToString("O", CultureInfo.InvariantCulture),
+                            _ => Convert.ToString(filter.Value, CultureInfo.InvariantCulture)
+                        }
+                    }).ToList()
+            };
+            var criteria = JsonSerializer.Serialize(new { query.Sorts, query.Filters });
+            if (previousCriteria != criteria)
+            {
+                previousCriteria = criteria;
+                currentPage = 0;
+                query.Skip = 0;
+            }
+
+            var page = await FetchUrlPage(query, cancellationToken);
+            if (query.Skip > 0 && query.Skip >= page.TotalCount)
+            {
+                currentPage = 0;
+                query.Skip = 0;
+                page = await FetchUrlPage(query, cancellationToken);
+            }
+
+            return new GridData<ShortUrlEntity> { Items = page.UrlList, TotalItems = page.TotalCount };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
+        {
+            Logger.LogError(ex, "Unable to load URLs");
+            errorMessage = "Unable to load URLs. Please refresh to try again.";
+            return new GridData<ShortUrlEntity> { Items = Array.Empty<ShortUrlEntity>(), TotalItems = 0 };
+        }
+        finally
+        {
+            busy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task<ListResponse> FetchUrlPage(UrlListQuery query, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var serialized = JsonSerializer.Serialize(query);
+        // Synchronizing the pager after a reset can ask for the same page again.
+        if (loadedQuery == serialized && loadedPage != null)
+            return loadedPage;
+        using var response = await Http.GetAsync("/api/UrlList?query=" + Uri.EscapeDataString(serialized), cancellationToken);
+        EnsureApiSuccess(response);
+        var page = await response.Content.ReadFromJsonAsync<ListResponse>(cancellationToken: cancellationToken);
+        if (page?.UrlList == null)
+            throw new JsonException("The URL list response was empty.");
+        loadedQuery = serialized;
+        loadedPage = page;
+        return page;
+    }
+
+    private void EnsureApiSuccess(HttpResponseMessage response)
+    {
+        if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            NavigationManager.NavigateTo("/unauthorized");
+        response.EnsureSuccessStatusCode();
+    }
+
+    private async Task ComposeAsync(string shortUrl, string title, string message)
+    {
+        try
+        {
+            // Use SocialPoster's saved-draft API; keep existing text, overrides and selections.
+            await JSRuntime.InvokeVoidAsync("shortenerComposeLink", shortUrl, title, message);
+            NavigationManager.NavigateTo("/socialposter");
+        }
+        catch (JSException ex)
+        {
+            Logger.LogError(ex, "Unable to add link to the SocialPoster draft");
+            Snackbar.Add("The link is saved, but the draft could not be opened. Copy the link and open Compose.", Severity.Error);
+        }
+    }
+
+    private void EditShortUrl(ShortUrlEntity url)
+    {
+        // Edit a copy so Cancel never changes the displayed or persisted entity.
+        editedUrl = new ShortUrlEntity
+        {
+            Url = url.Url, Title = url.Title, Message = url.Message, ShortUrl = url.ShortUrl,
+            PartitionKey = url.PartitionKey, RowKey = url.RowKey, Timestamp = url.Timestamp,
+            ETag = url.ETag, IsArchived = url.IsArchived, Posted = url.Posted
+        };
+        dialogError = null;
+        showEditPopup = true;
+    }
+
+    private async Task SaveUpdatedShortUrl()
+    {
+        if (await SaveRequest("/api/UrlUpdate", editedUrl))
+        {
+            ClosePopup();
+            await LoadUrls();
+        }
+    }
+
+    private async Task<bool> SaveRequest<T>(string endpoint, T request)
+    {
+        saving = true;
+        dialogError = null;
+        try
+        {
+            using var response = await Http.PostAsJsonAsync(endpoint, request);
+            EnsureApiSuccess(response);
+            return true;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            Logger.LogError(ex, "Unable to save URL using {Endpoint}", endpoint);
+            dialogError = "Unable to save the URL. Please try again.";
+            return false;
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private async Task ArchiveShortUrl(ShortUrlEntity url)
+    {
+        busy = true;
+        try
+        {
+            if (await SaveRequest("/api/UrlArchive", url))
+                await LoadUrls();
+            else
+                errorMessage = dialogError;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task CopyToClipboardAsync(string url)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("clipboardCopy.copyText", url);
+            Snackbar.Add("Short URL copied.", Severity.Success);
+        }
+        catch (JSException ex)
+        {
+            Logger.LogError(ex, "Unable to copy the short URL");
+            Snackbar.Add("Unable to copy the short URL. Check browser clipboard permissions.", Severity.Error);
+        }
+    }
+
+    private void NavigateToStats(string vanity) => NavigationManager.NavigateTo("/socialposter/statistics?link=" + Uri.EscapeDataString(vanity));
+
+    private void ClosePopup() => showEditPopup = false;
+
+}

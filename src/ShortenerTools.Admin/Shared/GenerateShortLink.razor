@@ -1,0 +1,266 @@
+@implements IDisposable
+@inject ShortLinkClient Links
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject ILogger<GenerateShortLink> Logger
+
+<MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Link"
+           OnClick="Open">Generate short link</MudButton>
+
+<MudDialog @bind-Visible="visible" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Generate short link</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (createdUrl is null)
+        {
+            <MudTextField T="string" Label="Link to shorten" Placeholder="https://" Value="url"
+                          ValueChanged="OnUrlChanged" Immediate="true" Disabled="busy" AutoFocus="true"
+                          Error="@(urlError is not null)" ErrorText="@urlError"/>
+            <MudTextField T="string" Label="Custom short code (optional)" Value="vanity"
+                          ValueChanged="OnVanityChanged" Immediate="true" Disabled="busy"
+                          Error="@IsVanityError" ErrorText="@vanityMessage" HelperText="@VanityHelp"
+                          Adornment="@(VanityIcon is null ? Adornment.None : Adornment.End)"
+                          AdornmentIcon="@VanityIcon" AdornmentColor="@VanityColor"/>
+            @if (!string.IsNullOrEmpty(dialogError))
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-2">@dialogError</MudAlert>
+            }
+            <MudText Typo="Typo.caption" Class="d-block mt-2">Creating a link does not post it anywhere.</MudText>
+            <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+                <MudButton OnClick="Close" Disabled="busy">Cancel</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync"
+                           Disabled="@(!CanCreate)">@(busy ? "Creating..." : "Create")</MudButton>
+            </MudStack>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Success">
+                Short link created:
+                <MudLink Href="@createdUrl" Target="_blank">@createdUrl</MudLink>
+            </MudAlert>
+            <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+                <MudButton OnClick="Reset">Create another</MudButton>
+                <MudButton OnClick="CopyAsync">Copy</MudButton>
+                <MudButton OnClick="Close">Done</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddToDraftAsync">Add to draft
+                </MudButton>
+            </MudStack>
+        }
+    </DialogContent>
+</MudDialog>
+
+@code {
+    private enum VanityState { None, Checking, Available, InUse, Invalid, CheckFailed }
+
+    private const int CheckDelayMilliseconds = 400;
+
+    private readonly DialogOptions dialogOptions = new()
+        { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = false, CloseOnEscapeKey = true };
+
+    private bool visible;
+    private bool busy;
+    private string url = "";
+    private string vanity = "";
+    private string urlError;
+    private string vanityMessage;
+    private string dialogError;
+    private string createdUrl;
+    private string creationId = NewCreationId();
+    private VanityState vanityState = VanityState.None;
+    private CancellationTokenSource checkCts;
+
+    private bool IsVanityError => vanityState is VanityState.InUse or VanityState.Invalid;
+
+    private bool CanCreate => !busy && !string.IsNullOrWhiteSpace(url)
+                              && vanityState is not (VanityState.Checking or VanityState.InUse or VanityState.Invalid);
+
+    private string VanityHelp => vanityState switch
+    {
+        VanityState.None => "Leave blank to generate one.",
+        VanityState.Checking => "Checking availability...",
+        VanityState.Available => "Available.",
+        VanityState.CheckFailed => vanityMessage,
+        _ => null
+    };
+
+    private string VanityIcon => vanityState switch
+    {
+        VanityState.Available => Icons.Material.Filled.CheckCircle,
+        VanityState.InUse or VanityState.Invalid => Icons.Material.Filled.Cancel,
+        _ => null
+    };
+
+    private Color VanityColor => vanityState == VanityState.Available ? Color.Success : Color.Error;
+
+    private static string NewCreationId() => Guid.NewGuid().ToString("N");
+
+    private void Open()
+    {
+        Reset();
+        visible = true;
+    }
+
+    private void Reset()
+    {
+        CancelCheck();
+        url = vanity = "";
+        urlError = vanityMessage = dialogError = createdUrl = null;
+        vanityState = VanityState.None;
+        // A new identity per link; a retry of the same attempt reuses it so it cannot create a second link.
+        creationId = NewCreationId();
+    }
+
+    private void Close()
+    {
+        CancelCheck();
+        visible = false;
+    }
+
+    private void OnUrlChanged(string value)
+    {
+        url = value;
+        urlError = null;
+        dialogError = null;
+    }
+
+    private async Task OnVanityChanged(string value)
+    {
+        vanity = value ?? "";
+        dialogError = null;
+        CancelCheck();
+        var code = vanity.Trim();
+        if (code.Length == 0)
+        {
+            vanityState = VanityState.None;
+            vanityMessage = null;
+            return;
+        }
+
+        // The same rules creation enforces, so there is no round trip for an obviously bad code.
+        if (ShortcodePolicy.GetError(code) is { } error)
+        {
+            vanityState = VanityState.Invalid;
+            vanityMessage = error;
+            return;
+        }
+
+        vanityState = VanityState.Checking;
+        vanityMessage = null;
+        var cts = checkCts = new CancellationTokenSource();
+        try
+        {
+            // Wait for a pause in typing so each keystroke does not hit the API.
+            await Task.Delay(CheckDelayMilliseconds, cts.Token);
+            var result = await Links.CheckAsync(code, cts.Token);
+            if (cts.IsCancellationRequested)
+                return;
+            vanityMessage = result.Message;
+            vanityState = result.Status switch
+            {
+                ShortcodeStatus.Available => VanityState.Available,
+                ShortcodeStatus.InUse => VanityState.InUse,
+                _ => VanityState.Invalid
+            };
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            // Superseded by a newer keystroke or the dialog closing.
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
+        {
+            Logger.LogWarning(ex, "Unable to check shortcode availability");
+            if (!cts.IsCancellationRequested)
+            {
+                vanityState = VanityState.CheckFailed;
+                vanityMessage = "Couldn't check availability. You can still create the link; a taken code is rejected.";
+            }
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        if (busy)
+            return;
+        if (!Uri.TryCreate(url.Trim(), UriKind.Absolute, out var destination)
+            || destination.Scheme is not ("https" or "http"))
+        {
+            urlError = "Enter a complete HTTP or HTTPS link.";
+            return;
+        }
+
+        busy = true;
+        dialogError = null;
+        try
+        {
+            var result = await Links.CreateAsync(url, vanity, creationId);
+            if (result.Succeeded)
+            {
+                CancelCheck();
+                createdUrl = result.ShortUrl;
+            }
+            else if (result.Conflict && vanity.Trim().Length > 0)
+            {
+                // Someone (or an earlier attempt elsewhere) claimed it after the availability check.
+                vanityState = VanityState.InUse;
+                vanityMessage = "This shortcode is already in use.";
+            }
+            else
+            {
+                dialogError = result.Error;
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
+        {
+            Logger.LogError(ex, "Unable to create short link");
+            dialogError = "Unable to create the link. Please try again.";
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task CopyAsync()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("clipboardCopy.copyText", createdUrl);
+            Snackbar.Add("Short URL copied.", Severity.Success);
+        }
+        catch (JSException ex)
+        {
+            Logger.LogError(ex, "Unable to copy the short URL");
+            Snackbar.Add("Unable to copy the short URL. Check browser clipboard permissions.", Severity.Error);
+        }
+    }
+
+    private async Task AddToDraftAsync()
+    {
+        try
+        {
+            // The same saved-draft handoff the Links page's Compose action uses: appends the link to the draft's text
+            // and platform versions without discarding existing text, overrides or selections.
+            await JSRuntime.InvokeVoidAsync("shortenerComposeLink", createdUrl, "", "");
+            Close();
+            // The composer on this page loaded its draft before the link existed, so reload to show it.
+            NavigationManager.NavigateTo("/socialposter", forceLoad: true);
+        }
+        catch (JSException ex)
+        {
+            Logger.LogError(ex, "Unable to add link to the SocialPoster draft");
+            Snackbar.Add("The link is created, but it could not be added to the draft. Copy it and paste it in.",
+                Severity.Error);
+        }
+    }
+
+    private void CancelCheck()
+    {
+        checkCts?.Cancel();
+        checkCts?.Dispose();
+        checkCts = null;
+    }
+
+    public void Dispose() => CancelCheck();
+}

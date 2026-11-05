@@ -1,0 +1,88 @@
+@page "/"
+@page "/socialposter"
+@page "/socialposter/{Section}"
+@attribute [Authorize(Roles = "admin")]
+@inject ComposerLinkWorkflow LinkWorkflow
+
+<PageTitle>SocialPoster</PageTitle>
+<MudStack Spacing="3">
+    <MudText Typo="Typo.h4">SocialPoster</MudText>
+    <MudStack Row="true" Spacing="1" Class="flex-wrap">
+        @foreach (var section in Sections)
+        {
+            <MudButton Href="@section.Path" Color="Color.Primary"
+                       Variant="@(IsSection(section.Key) ? Variant.Filled : Variant.Outlined)">@section.Label</MudButton>
+        }
+    </MudStack>
+    @if (IsSection(null))
+    {
+        <MudStack Row="true" Justify="Justify.FlexEnd">
+            <GenerateShortLink/>
+        </MudStack>
+        <SocialPoster.Components.Pages.Home Workflow="LinkWorkflow" EnableScheduling="false">
+            <LinkOptions Context="saveOptions">
+                <MudStack Spacing="2" Class="mt-3">
+                    <MudTextField T="string" Label="Custom shortcode (optional)"
+                                  @bind-Value="LinkWorkflow.Vanity" @bind-Value:after="saveOptions" Immediate="true"
+                                  HelperText="Leave blank to generate a shortcode when you publish or schedule."/>
+                    <MudTextField T="string" Label="Link title (optional)"
+                                  @bind-Value="LinkWorkflow.Title" @bind-Value:after="saveOptions" Immediate="true"/>
+                    <MudSwitch T="bool" Color="Color.Primary" Label="Stage for the timer instead of posting now"
+                               @bind-Value="LinkWorkflow.StageForTimer" @bind-Value:after="saveOptions"/>
+                    <MudText Typo="Typo.caption">Enter a URL above and click Generate to draft your post.
+                        Publish or Schedule creates its short link and uses it in each selected platform's message.
+                    </MudText>
+                    @if (!string.IsNullOrEmpty(LinkWorkflow.LastShortUrl))
+                    {
+                        <MudText Typo="Typo.caption">Short link:
+                            <MudLink Href="@LinkWorkflow.LastShortUrl"
+                                     Target="_blank">@LinkWorkflow.LastShortUrl</MudLink>
+                        </MudText>
+                    }
+                </MudStack>
+            </LinkOptions>
+        </SocialPoster.Components.Pages.Home>
+    }
+    else if (IsSection("links"))
+    {
+        <UrlManager/>
+    }
+    else if (IsSection("contacts"))
+    {
+        <SocialPoster.Components.Pages.Contacts/>
+    }
+    else if (IsSection("history"))
+    {
+        <SocialPoster.Components.Pages.History/>
+    }
+    else if (IsSection("settings"))
+    {
+        <SocialPoster.Components.Pages.Settings/>
+    }
+    else if (IsSection("statistics"))
+    {
+        <Statistics vanity="@LinkCode"/>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning">That SocialPoster section was not found.</MudAlert>
+    }
+</MudStack>
+
+@code {
+    [Parameter] public string Section { get; set; }
+
+    [SupplyParameterFromQuery(Name = "link")]
+    public string LinkCode { get; set; }
+
+    private static readonly (string Key, string Label, string Path)[] Sections =
+    [
+        (null, "Compose & schedule", "/socialposter"),
+        ("links", "Links", "/socialposter/links"),
+        ("contacts", "Contacts", "/socialposter/contacts"),
+        ("settings", "Accounts & settings", "/socialposter/settings"),
+        ("statistics", "Click statistics", "/socialposter/statistics")
+    ];
+
+    private bool IsSection(string section) => string.Equals(Section, section, StringComparison.OrdinalIgnoreCase);
+}

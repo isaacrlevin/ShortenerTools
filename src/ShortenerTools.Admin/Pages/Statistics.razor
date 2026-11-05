@@ -1,0 +1,247 @@
+@page "/statistics"
+@page "/statistics/{vanity}"
+@attribute [Authorize(Roles = "admin")]
+@using System.Diagnostics
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject ILogger<Statistics> Logger
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Admin - Statistics</PageTitle>
+<h1>@SubTitle</h1>
+
+@if (isLoading)
+{
+    <div class="loading-state" role="status"><MudProgressCircular Indeterminate="true" />Counting all those clicks...</div>
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <MudAlert Severity="Severity.Error">@errorMessage</MudAlert>
+    <MudButton OnClick="LoadStatistics">Retry</MudButton>
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="flex-wrap mb-4">
+        <MudDateRangePicker Label="Date range (local dates)" DateRange="dateRange" DateRangeChanged="ChangeDateRange"
+                            Clearable="true" DateFormat="MM/dd/yyyy" />
+        <MudSwitch T="bool" Value="hideCrawlers" ValueChanged="ChangeHideCrawlers" Color="Color.Primary"
+                   Label="Hide crawler clicks" />
+    </MudStack>
+    <MudText Typo="Typo.caption" Class="d-block mb-4 mt-n2">
+        Opens on the last month. Pick earlier dates, or clear the range to load every click (slower).
+    </MudText>
+    @if (filteredClicks.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">No Click Data</MudAlert>
+    }
+    else
+    {
+        <MudPaper Class="pa-4 mb-4" Outlined="true">
+            <MudText Typo="Typo.h6">Click Stats</MudText>
+            <MudChart T="double" ChartType="ChartType.Timeseries" ChartSeries="dailySeries"
+                      Width="100%" Height="350px" ChartOptions="chartOptions" />
+            <MudSimpleTable Dense="true" Class="mt-2" aria-label="Clicks by day">
+                <thead><tr><th>Date</th><th>Click(s) by Day</th></tr></thead>
+                <tbody>
+                    @for (var i = (dailyPage - 1) * DailyPageSize; i < Math.Min(dailyPage * DailyPageSize, dailyLabels.Length); i++)
+                    {
+                        <tr><td>@dailyLabels[i]</td><td>@dailySeries[0].Data[i].Y</td></tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+            @if (dailyLabels.Length > DailyPageSize)
+            {
+                <MudPagination Count="DailyPageCount" @bind-Selected="dailyPage" Class="mt-2 d-flex justify-center" />
+            }
+        </MudPaper>
+        <MudGrid>
+            <MudItem xs="12" sm="6" lg="3"><StatisticsPie Title="ShortUrl Statistics" Clicks="filteredClicks" Category="@(x => x.ShortUrl)" /></MudItem>
+            <MudItem xs="12" sm="6" lg="3"><StatisticsPie Title="Platform Statistics" Clicks="filteredClicks" Category="@(x => x.Platform)" /></MudItem>
+            <MudItem xs="12" sm="6" lg="3"><StatisticsPie Title="Mobile Browser Statistics" Clicks="filteredClicks" Category="@(x => x.Browser)" /></MudItem>
+            <MudItem xs="12" sm="6" lg="3"><StatisticsPie Title="Device Type Statistics" Clicks="filteredClicks" Category="@(x => x.IsDesktop ? "Desktop" : "Mobile")" /></MudItem>
+        </MudGrid>
+        <MudExpansionPanels Class="mt-4">
+            <MudExpansionPanel Text="Click Data">
+                <MudDataGrid T="ClickStatsEntity" Items="filteredClicks" RowsPerPage="50" SortMode="SortMode.Multiple" Dense="true" Hover="true">
+                    <Columns>
+                        <TemplateColumn Title="Timestamp">
+                            <CellTemplate>@LocalDate(context.Item).ToString("MM/dd/yyyy hh:mm:ss tt")</CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.Page" Title="Page" />
+                        <PropertyColumn Property="x => x.ShortUrl" Title="ShortUrl" />
+                        <PropertyColumn Property="x => x.BrowserWithVersion" Title="Browser" />
+                        <PropertyColumn Property="x => x.PlatformWithVersion" Title="Platform" />
+                        <PropertyColumn Property="x => x.ReferrerUrl" Title="ReferrerUrl" />
+                    </Columns>
+                    <PagerContent><MudDataGridPager T="ClickStatsEntity" PageSizeOptions="@(new[] { 50, 100 })" /></PagerContent>
+                </MudDataGrid>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    }
+}
+
+@code {
+    [Parameter] public string vanity { get; set; }
+
+    private string SubTitle => string.IsNullOrEmpty(vanity) ? "All Click Stats" : $"Click Stats for: {vanity}";
+    private bool isLoading = true;
+    private string errorMessage;
+    private List<ClickStatsEntity> clicks = new();
+    private List<ClickStatsEntity> filteredClicks = new();
+    private DateRange dateRange;
+    // Link-preview fetchers and detected crawlers are flagged IsCrawler when recorded; hide them unless asked.
+    private bool hideCrawlers = true;
+    private List<ChartSeries<double>> dailySeries = new();
+    private string[] dailyLabels = Array.Empty<string>();
+    private const int DailyPageSize = 10;
+    private int dailyPage = 1;
+    private int DailyPageCount => (dailyLabels.Length + DailyPageSize - 1) / DailyPageSize;
+    private int loadVersion;
+    private TimeZoneInfo browserTimeZone;
+    private const int MaxAxisLabels = 8;
+    private TimeSeriesChartOptions chartOptions = BuildChartOptions(1);
+
+    // One label per day overlaps as soon as the range is longer than about a week, so space them to fit.
+    private static TimeSeriesChartOptions BuildChartOptions(int spanDays) => new()
+    {
+        YAxisTicks = 1,
+        LineStrokeWidth = 2,
+        ShowDataMarkers = true,
+        TimeLabelFormat = "MMM d",
+        TimeLabelSpacing = TimeSpan.FromDays(Math.Max(1, (int)Math.Ceiling(spanDays / (double)MaxAxisLabels))),
+        TooltipTimeLabelFormat = "MM/dd/yyyy"
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.IsInRole("admin"))
+        {
+            if (browserTimeZone is not null)
+            {
+                dateRange = DefaultDateRange();
+                await LoadStatistics();
+            }
+        }
+        else
+            NavigationManager.NavigateTo("/unauthorized");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+        try
+        {
+            var timeZoneId = await JSRuntime.InvokeAsync<string>("shortenerTimeZone");
+            browserTimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            dateRange = DefaultDateRange();
+            await LoadStatistics();
+        }
+        catch (Exception ex) when (ex is JSException or TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            Logger.LogError(ex, "Unable to determine the browser time zone");
+            errorMessage = "Unable to determine your time zone. Reload this page to try again.";
+            isLoading = false;
+        }
+        StateHasChanged();
+    }
+
+    private Task LoadStatistics() => UpdateStatistics(reloadClicks: true);
+
+    private async Task UpdateStatistics(bool reloadClicks)
+    {
+        var version = ++loadVersion;
+        var request = new UrlClickStatsRequest(vanity)
+        {
+            StartDate = dateRange?.Start?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+            EndDate = dateRange?.End?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+            TimeZoneId = browserTimeZone.Id
+        };
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            if (reloadClicks)
+            {
+                using var response = await Http.PostAsJsonAsync("/api/UrlStats", request);
+                if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                    NavigationManager.NavigateTo("/unauthorized");
+                response.EnsureSuccessStatusCode();
+                var result = await response.Content.ReadFromJsonAsync<ClickStatsEntityList>();
+                if (version != loadVersion)
+                    return;
+                clicks = result?.ClickStatsList ?? throw new JsonException("The click statistics response was empty.");
+            }
+
+            ApplyFilters();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or FormatException or TaskCanceledException)
+        {
+            Logger.LogError(ex, "Unable to load click statistics");
+            if (version == loadVersion)
+                errorMessage = "Unable to load click statistics. Please try again.";
+        }
+        finally
+        {
+            if (version == loadVersion)
+                isLoading = false;
+        }
+    }
+
+    private async Task ChangeDateRange(DateRange range)
+    {
+        dateRange = range;
+        await UpdateStatistics(reloadClicks: true);
+    }
+
+    // The crawler filter and the daily chart both work on the clicks already loaded, so no request is needed.
+    private void ChangeHideCrawlers(bool value)
+    {
+        hideCrawlers = value;
+        ApplyFilters();
+    }
+
+    // Filters the loaded clicks by crawler flag and local date range, and counts them per local day. Days without
+    // clicks are omitted, matching the UrlClickStatsByDay API.
+    private void ApplyFilters()
+    {
+        var start = dateRange?.Start?.Date;
+        var end = dateRange?.End?.Date;
+        var visible = new List<(ClickStatsEntity Click, DateTime Day)>();
+        foreach (var click in clicks)
+        {
+            if (hideCrawlers && click.IsCrawler)
+                continue;
+            var day = LocalDate(click).Date;
+            if ((start.HasValue && day < start.Value) || (end.HasValue && day > end.Value))
+                continue;
+            visible.Add((click, day));
+        }
+
+        filteredClicks = visible.Select(x => x.Click).ToList();
+        var daily = visible.GroupBy(x => x.Day).OrderBy(x => x.Key).ToList();
+        chartOptions = BuildChartOptions(daily.Count == 0 ? 1 : (daily[^1].Key - daily[0].Key).Days + 1);
+        dailyPage = 1;
+        dailyLabels = daily.Select(x => x.Key.ToString("MM/dd/yyyy")).ToArray();
+        dailySeries = new()
+        {
+            new ChartSeries<double>
+            {
+                Name = "Click(s) by Day",
+                Data = daily.Select(x => (x.Key, (double)x.Count())).ToArray()
+            }
+        };
+    }
+
+    // Loading every click is slow for long-lived links, so the page opens on the last month in the browser's time zone.
+    private DateRange DefaultDateRange()
+    {
+        var today = TimeZoneInfo.ConvertTime(DateTime.UtcNow, browserTimeZone).Date;
+        return new DateRange(today.AddMonths(-1), today);
+    }
+
+    private DateTime LocalDate(ClickStatsEntity click) =>
+        DailyClickAggregation.GetDisplayTimestamp(click.Datetime, browserTimeZone);
+}

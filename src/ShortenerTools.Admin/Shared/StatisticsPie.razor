@@ -1,0 +1,44 @@
+<MudPaper Class="pa-4" Outlined="true">
+    <MudText Typo="Typo.h6">@Title</MudText>
+    <MudChart T="double" ChartType="ChartType.Pie" ChartSeries="series" ChartLabels="labels" Width="100%" Height="250px" />
+    <MudSimpleTable Dense="true" aria-label="@Title">
+        <thead><tr><th>Category</th><th>Clicks</th></tr></thead>
+        <tbody>
+            @for (var i = 0; i < labels.Length; i++)
+            {
+                <tr><td>@labels[i]</td><td>@counts[i]</td></tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; }
+    [Parameter, EditorRequired] public IEnumerable<ClickStatsEntity> Clicks { get; set; }
+    [Parameter, EditorRequired] public Func<ClickStatsEntity, string> Category { get; set; }
+
+    private string[] labels = Array.Empty<string>();
+    private double[] counts = Array.Empty<double>();
+    private List<ChartSeries<double>> series = new();
+
+    protected override void OnParametersSet()
+    {
+        var groups = Clicks
+            .GroupBy(x => Category(x) ?? "Unknown")
+            .Select(x => new { Label = x.Key, Count = x.Count() })
+            .OrderByDescending(x => x.Count)
+            .ThenBy(x => x.Label, StringComparer.Ordinal)
+            .ToList();
+        var topGroups = groups.Take(10).ToList();
+        var otherCount = groups.Skip(10).Sum(x => x.Count);
+
+        labels = topGroups.Select(x => x.Label).ToArray();
+        counts = topGroups.Select(x => (double)x.Count).ToArray();
+        if (otherCount > 0)
+        {
+            labels = labels.Append("Other").ToArray();
+            counts = counts.Append((double)otherCount).ToArray();
+        }
+        series = new() { new ChartSeries<double> { Name = Title, Data = counts } };
+    }
+}

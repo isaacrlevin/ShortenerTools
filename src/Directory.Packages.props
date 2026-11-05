@@ -1,0 +1,75 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
+    <!-- The Functions SDK generates WorkerExtensions with its own package versions. -->
+    <ManagePackageVersionsCentrally Condition="'$(MSBuildProjectName)' == 'WorkerExtensions'">false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="AnthonyChu.AzureStaticWebApps.Blazor.Authentication" Version="0.0.2-preview" />
+    <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="13.6.4-preview.1.26523.11" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.4" />
+    <PackageVersion Include="Aspire.Hosting.Azure.AppContainers" Version="13.6.4" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="13.6.4" />
+    <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="13.6.4" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="13.6.4" />
+    <PackageVersion Include="Azure.AI.OpenAI" Version="2.9.0-beta.1" />
+    <PackageVersion Include="Azure.Communication.Email" Version="1.1.0" />
+    <PackageVersion Include="Azure.Data.Tables" Version="12.13.0" />
+    <PackageVersion Include="Azure.Data.AppConfiguration" Version="1.12.0-beta.1" />
+    <PackageVersion Include="Azure.Identity" Version="1.21.0" />
+    <PackageVersion Include="Azure.Monitor.OpenTelemetry.Exporter" Version="1.10.0" />
+    <PackageVersion Include="Azure.Storage.Blobs" Version="12.30.1" />
+    <PackageVersion Include="Azure.Storage.Files.Shares" Version="12.28.0" />
+    <PackageVersion Include="Azure.Storage.Queues" Version="12.28.1" />
+    <PackageVersion Include="CommunityToolkit.Aspire.Hosting.Ollama" Version="13.6.1" />
+    <PackageVersion Include="CommunityToolkit.Aspire.OllamaSharp" Version="17.0.0-beta.994" />
+    <PackageVersion Include="cronos" Version="0.13.0" />
+    <PackageVersion Include="Ical.Net" Version="5.2.3" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="11.0.0-rc.3.26522.148" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="11.0.0-rc.3.26522.148" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Authentication.WebAssembly.Msal" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.52.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.51.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.OpenTelemetry" Version="1.2.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.1" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs" Version="6.8.2" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.5.5" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.AzureAppConfiguration" Version="8.7.0-preview" />
+    <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.14.1" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="11.0.0-rc.3.26522.148" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.NET.ILLink.Tasks" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="Microsoft.NET.Sdk.WebAssembly.Pack" Version="10.0.11" />
+    <PackageVersion Include="Moq" Version="4.21.0" />
+    <PackageVersion Include="MSTest.TestAdapter" Version="4.5.2" />
+    <PackageVersion Include="MSTest.TestFramework" Version="4.5.2" />
+    <PackageVersion Include="MudBlazor" Version="9.12.0" />
+    <PackageVersion Include="Newtonsoft.Json" Version="14.0.1-beta2" />
+    <PackageVersion Include="OllamaSharp" Version="5.5.2" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.21.0-rc.1" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.21.0-rc.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.20.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.20.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.20.1" />
+    <PackageVersion Include="SocialPoster.Components" Version="0.6.6" />
+    <PackageVersion Include="SocialPoster.Posting" Version="0.6.6" />
+    <PackageVersion Include="System.Private.Uri" Version="4.3.2" />
+    <PackageVersion Include="System.Text.RegularExpressions" Version="4.3.1" />
+    <PackageVersion Include="TweetinviAPI" Version="5.0.4" />
+    <PackageVersion Include="UAParser" Version="3.1.47" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The Functions Application Insights adapter requires the 2.x telemetry API. -->
+    <PackageVersion Include="Microsoft.ApplicationInsights" Version="2.23.0" />
+    <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
+  </ItemGroup>
+</Project>

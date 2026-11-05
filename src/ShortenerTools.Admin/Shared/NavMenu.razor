@@ -1,0 +1,13 @@
+<MudNavMenu aria-label="Main navigation">
+    <AuthorizeView Roles="admin">
+        <Authorized>
+            <MudNavLink Href="socialposter" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Campaign">Compose
+                &amp; schedule
+            </MudNavLink>
+            <MudNavLink Href="socialposter/links" Icon="@Icons.Material.Filled.Link">Links</MudNavLink>
+            <MudNavLink Href="socialposter/contacts" Icon="@Icons.Material.Filled.People">Contacts</MudNavLink>
+            <MudNavLink Href="socialposter/statistics" Icon="@Icons.Material.Filled.BarChart">Click Statistics</MudNavLink>
+            <MudNavLink Href="socialposter/settings" Icon="@Icons.Material.Filled.Settings">Accounts &amp; settings</MudNavLink>
+        </Authorized>
+    </AuthorizeView>
+</MudNavMenu>

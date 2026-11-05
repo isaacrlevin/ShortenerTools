@@ -1,0 +1,259 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-labelledby="title desc">
+<title id="title">ShortenerTools production Azure architecture</title>
+<desc id="desc">Production deployment generated from the Aspire AppHost. One Azure Container Apps environment (Consumption) runs four single-replica apps: a public redirect Functions app bound to the custom short-link domain, a public Blazor admin with SocialPoster and Entra sign-in, a public API-key-protected management Functions app, and an internal scheduled-posts Functions app with four timers. They use an existing URL data storage account through managed identities, a new Functions host storage account, a new Azure Files share for SocialPoster data, workspace-based Application Insights, and a container registry. Microsoft Entra ID, Azure App Configuration, Azure OpenAI, social networks and Azure Communication Services email are prerequisites outside the deployment.</desc>
+<defs>
+<image id="ic-entra" width="32" height="32" preserveAspectRatio="xMidYMid meet" href="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0idXVpZC1mOGQ0ZDM5Mi03YzEyLTRiZDktYmFmZi02NmZiZjc4MTRiOTEiIGRhdGEtbmFtZT0iTGF5ZXIgMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCI+CiAgPHBhdGggZD0ibTMuODAyLDE0LjAzMmMuMzg4LjI0MiwxLjAzMy41MTEsMS43MTUuNTExLjYyMSwwLDEuMTk4LS4xOCwxLjY3Ni0uNDg3LDAsMCwuMDAxLDAsLjAwMi0uMDAxbDEuODA1LTEuMTI4djQuMDczYy0uMjg2LDAtLjU3NC0uMDc4LS44MjQtLjIzNGwtNC4zNzQtMi43MzRaIiBmaWxsPSIjMjI1MDg2Ii8+CiAgPHBhdGggZD0ibTcuODUzLDEuNTA3TC4zNTMsOS45NjdjLS41NzkuNjU0LS40MjgsMS42NDIuMzIzLDIuMTExLDAsMCwyLjc3NiwxLjczNSwzLjEyNiwxLjk1NC4zODguMjQyLDEuMDMzLjUxMSwxLjcxNS41MTEuNjIxLDAsMS4xOTgtLjE4LDEuNjc2LS40ODcsMCwwLC4wMDEsMCwuMDAyLS4wMDFsMS44MDUtMS4xMjgtNC4zNjQtMi43MjgsNC4zNjUtNC45MjRWMXMwLDAsMCwwYy0uNDI0LDAtLjg0Ny4xNjktMS4xNDcuNTA3WiIgZmlsbD0iIzZkZiIvPgogIDxwb2x5Z29uIHBvaW50cz0iNC42MzYgMTAuMTk5IDQuNjg4IDEwLjIzMSA5IDEyLjkyNyA5LjAwMSAxMi45MjcgOS4wMDEgMTIuOTI3IDkuMDAxIDUuMjc2IDkgNS4yNzUgNC42MzYgMTAuMTk5IiBmaWxsPSIjY2JmOGZmIi8+CiAgPHBhdGggZD0ibTE3LjMyNCwxMi4wNzhjLjc1MS0uNDY5LjkwMi0xLjQ1Ny4zMjMtMi4xMTFsLTQuOTIxLTUuNTUxYy0uMzk3LS4xODUtLjg0Mi0uMjkxLTEuMzEzLS4yOTEtLjkyNSwwLTEuNzUyLjM5OS0yLjMwMiwxLjAyNmwtLjEwOS4xMjNoMHM0LjM2NCw0LjkyNCw0LjM2NCw0LjkyNGgwczAsMCwwLDBsLTQuMzY1LDIuNzI4djQuMDczYy4yODcsMCwuNTczLS4wNzguODIzLS4yMzRsNy41LTQuNjg4WiIgZmlsbD0iIzA3NDc5MyIvPgogIDxwYXRoIGQ9Im05LjAwMSwxdjQuMjc1cy4xMDktLjEyMy4xMDktLjEyM2MuNTUtLjYyNywxLjM3Ny0xLjAyNiwyLjMwMi0xLjAyNi40NzIsMCwuOTE2LjEwNywxLjMxMy4yOTFsLTIuNTc5LTIuOTA5Yy0uMjk5LS4zMzgtLjcyMy0uNTA3LTEuMTQ2LS41MDdaIiBmaWxsPSIjMDI5NGU0Ii8+CiAgPHBvbHlnb24gcG9pbnRzPSIxMy4zNjUgMTAuMTk5IDEzLjM2NSAxMC4xOTkgMTMuMzY1IDEwLjE5OSA5LjAwMSA1LjI3NiA5LjAwMSAxMi45MjYgMTMuMzY1IDEwLjE5OSIgZmlsbD0iIzk2YmNjMiIvPgo8L3N2Zz4="/>
+<image id="ic-openai" width="32" height="32" preserveAspectRatio="xMidYMid meet" href="data:image/svg+xml;base64,PHN2ZyBpZD0idXVpZC1hZGJkYWU4ZS01YTQxLTQ2ZDEtOGMxOC1hYTczY2RiZmVlMzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE4IiB2aWV3Qm94PSIwIDAgMTggMTgiPjxkZWZzPjxyYWRpYWxHcmFkaWVudCBpZD0idXVpZC0yYTc0MDdhYS1iNzg3LTQ4ZGQtYTk2YS0wZDgxYWI2ZTkzYmIiIGN4PSItNjcuOTgxIiBjeT0iNzkzLjE5OSIgcj0iLjQ1IiBncmFkaWVudFRyYW5zZm9ybT0idHJhbnNsYXRlKC0xNzkzOS4wMyAyMDM2OC4wMjkpIHJvdGF0ZSg0NSkgc2NhbGUoMjUuMDkxIC0zNC4xNDkpIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjODNiOWY5IiAvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzAwNzhkNCIgLz48L3JhZGlhbEdyYWRpZW50PjwvZGVmcz48cGF0aCBkPSJtMCwyLjd2MTIuNmMwLDEuNDkxLDEuMjA5LDIuNywyLjcsMi43aDEyLjZjMS40OTEsMCwyLjctMS4yMDksMi43LTIuN1YyLjdjMC0xLjQ5MS0xLjIwOS0yLjctMi43LTIuN0gyLjdDMS4yMDksMCwwLDEuMjA5LDAsMi43Wk0xMC44LDB2My42YzAsMy45NzYsMy4yMjQsNy4yLDcuMiw3LjJoLTMuNmMtMy45NzYsMC03LjE5OSwzLjIyMi03LjIsNy4xOTh2LTMuNTk4YzAtMy45NzYtMy4yMjQtNy4yLTcuMi03LjJoMy42YzMuOTc2LDAsNy4yLTMuMjI0LDcuMi03LjJaIiBmaWxsPSJ1cmwoI3V1aWQtMmE3NDA3YWEtYjc4Ny00OGRkLWE5NmEtMGQ4MWFiNmU5M2JiKSIgc3Ryb2tlLXdpZHRoPSIwIiAvPjwvc3ZnPg=="/>
+<image id="ic-acaenv" width="32" height="32" preserveAspectRatio="xMidYMid meet" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgdmlld0JveD0iMCAwIDE4IDE4Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImEzYTQ0MDkzLWIxNTctNDI2ZS1hOGZlLWNlYzlmOWMyMzk3OCIgeDE9IjExLjcyOSIgeTE9IjQuODgiIHgyPSIxMS43MjkiIHkyPSIxMy4wOTkiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBvZmZzZXQ9IjAuMDAxIiBzdG9wLWNvbG9yPSIjNzczYWRjIiAvPjxzdG9wIG9mZnNldD0iMC41MjgiIHN0b3AtY29sb3I9IiM2NjM1YmIiIC8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNTUyZjk5IiAvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJhZDgzODg1OS0wM2Y0LTQ3MmYtODFiYy1lYmM5MjFkNzEzMzUiIHgxPSI2LjM1IiB5MT0iMTMuOTE0IiB4Mj0iNi4zNSIgeTI9IjQuMTk4IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIwLjAwMSIgc3RvcC1jb2xvcj0iIzc3M2FkYyIgLz48c3RvcCBvZmZzZXQ9IjAuMzA3IiBzdG9wLWNvbG9yPSIjNzkzZGRkIiAvPjxzdG9wIG9mZnNldD0iMC41MzIiIHN0b3AtY29sb3I9IiM4MDQ2ZTEiIC8+PHN0b3Agb2Zmc2V0PSIwLjczMSIgc3RvcC1jb2xvcj0iIzhjNTZlNyIgLz48c3RvcCBvZmZzZXQ9IjAuOTE1IiBzdG9wLWNvbG9yPSIjOWM2ZGVmIiAvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E2N2FmNCIgLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48ZyBpZD0iYWU4MjQ3MGQtN2E2Yy00ZGZlLTg1MzMtNTlkOGZmOTQ4NjI5Ij48Zz48cGF0aCBkPSJNOC42MTcsOC42NDRILjYzOVYxLjc4NEExLjE2LDEuMTYsMCwwLDEsMS43ODguNjI0SDguNjE3Wk0xLjYzLDcuNjUzaDZWMS41OTRIMS43ODhhLjE1OC4xNTgsMCwwLDAtLjE1OC4xNThoMFoiIGZpbGw9IiM5NDk0OTQiIC8+PHBhdGggZD0iTTE3LjUsOC42NDRIOS41MjNWLjYyNGg2LjgyOEExLjE2LDEuMTYsMCwwLDEsMTcuNSwxLjc4NFptLTYuOTg3LS45OTFoNlYxLjc4NGEuMTU3LjE1NywwLDAsMC0uMTIzLS4xODcuMi4yLDAsMCwwLS4wMzUsMEgxMC41MTNaIiBmaWxsPSIjOTQ5NDk0IiAvPjxwYXRoIGQ9Ik04LjYxNywxNy40ODVIMS43ODhBMS4xNDksMS4xNDksMCwwLDEsLjYzOSwxNi4zNDdWOS40NzZIOC42MTdaTTEuNjMsMTAuNDY3djUuODhhLjE1OC4xNTgsMCwwLDAsLjE1OC4xNThINy42MjZWMTAuNDY3WiIgZmlsbD0iIzk0OTQ5NCIgLz48cGF0aCBkPSJNMTYuMzUxLDE3LjQ4NUg5LjUyM1Y5LjQ3NkgxNy41djYuODcxQTEuMTQ5LDEuMTQ5LDAsMCwxLDE2LjM1MSwxNy40ODVabS01LjgzOC0uOTkxaDUuODM4YS4xNTcuMTU3LDAsMCwwLC4xNTgtLjE1OFYxMC40NjdoLTZaIiBmaWxsPSIjOTQ5NDk0IiAvPjxwYXRoIGQ9Ik0xNC42LDYuMjk0YS4yOTQuMjk0LDAsMCwwLS4yLS4yNzhMOS4wNDQsNC4yMDVBLjEyOC4xMjgsMCwwLDAsOSw0LjJIOWEuMTMyLjEzMiwwLDAsMC0uMTMzLjEzM3Y5LjQ0NUEuMTMzLjEzMywwLDAsMCw5LDEzLjkxMUg5YS4xMzguMTM4LDAsMCwwLC4wNDktLjAxbDUuMzY1LTIuMTQ1YS4yOTIuMjkyLDAsMCwwLC4xODQtLjI3MloiIGZpbGw9InVybCgjYTNhNDQwOTMtYjE1Ny00MjZlLWE4ZmUtY2VjOWY5YzIzOTc4KSIgLz48cGF0aCBkPSJNOC45NjYsNC4ybC01LjI5My45NjZhLjE2MS4xNjEsMCwwLDAtLjEzLjE1OFYxMi42M2EuMTYuMTYsMCwwLDAsLjEyNi4xNTdMOC45NjIsMTMuOTFhLjE2MS4xNjEsMCwwLDAsLjE5MS0uMTIxLjIyLjIyLDAsMCwwLDAtLjAzNlY0LjM1OEEuMTYuMTYsMCwwLDAsOSw0LjIuMTYzLjE2MywwLDAsMCw4Ljk2Niw0LjJaIiBmaWxsPSJ1cmwoI2FkODM4ODU5LTAzZjQtNDcyZi04MWJjLWViYzkyMWQ3MTMzNSkiIC8+PHBhdGggZD0iTTYuNTIsNS42NTZ2Ni44bDEuODQyLjNWNS4zMzVabS0yLjI2Mi4zNjd2NS45NTVsMS42LjMyNlY1Ljc1NFoiIGZpbGw9IiNiNzk2ZjkiIG9wYWNpdHk9IjAuNSIgLz48L2c+PC9nPjwvc3ZnPg=="/>
+<image id="ic-app" width="32" height="32" preserveAspectRatio="xMidYMid meet" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgdmlld0JveD0iMCAwIDE4IDE4Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImIyN2YxYWQwLTdkMTEtNDI0Ny05ZGEzLTkxYmNlNjIxMWYzMiIgeDE9IjguNzk4IiB5MT0iOC43MDMiIHgyPSIxNC42ODMiIHkyPSI4LjcwMyIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMC4wMDEiIHN0b3AtY29sb3I9IiM3NzNhZGMiIC8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNTUyZjk5IiAvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJiMmY5MjExMi00Y2E5LTRiMTctYTAxOS1jOWYyNmMxYTRhOGYiIHgxPSI1Ljc2NCIgeTE9IjMuNzc3IiB4Mj0iNS43NjQiIHkyPSIxMy43OCIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E2N2FmNCIgLz48c3RvcCBvZmZzZXQ9IjAuOTk5IiBzdG9wLWNvbG9yPSIjNzczYWRjIiAvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxnIGlkPSJiOGEwNDg2YS01NTAxLTRkOTItYjU0MC1hNzY2YzRiM2I1NDgiPjxnPjxnPjxnPjxwYXRoIGQ9Ik0xNi45MzIsMTEuNTc4YTguNDQ4LDguNDQ4LDAsMCwxLTcuOTUsNS41OSw4LjE1LDguMTUsMCwwLDEtMi4zMy0uMzMsMi4xMzMsMi4xMzMsMCwwLDAsLjE4LS44M2MuMDEsMCwuMDMuMDEuMDQuMDFhNy40MjIsNy40MjIsMCwwLDAsMi4xMS4zLDcuNjQ2LDcuNjQ2LDAsMCwwLDYuODUtNC4yOGwuMDEtLjAxWiIgZmlsbD0iIzMyYmVkZCIgLz48cGF0aCBkPSJNMy41ODIsMTQuMDY4YTIuMDI1LDIuMDI1LDAsMCwwLS42NC41Niw4LjYsOC42LDAsMCwxLTEuNjctMi40NGwxLjA0LjIzdi4yNmEuNi42LDAsMCwwLC40Ny41OWwuMTQuMDNhNi4xMzYsNi4xMzYsMCwwLDAsLjYyLjczWiIgZmlsbD0iIzMyYmVkZCIgLz48cGF0aCBkPSJNMTIuMzUyLjk1OGEyLjI4LDIuMjgsMCwwLDAtLjI3LjgxYy0uMDItLjAxLS4wNS0uMDItLjA3LS4wM2E3LjQ3OSw3LjQ3OSwwLDAsMC0zLjAzLS42Myw3LjY0Myw3LjY0MywwLDAsMC01LjksMi44bC0uMjkuMDZhLjYuNiwwLDAsMC0uNDguNTh2LjQ2bC0xLjAyLjE5QTguNDU0LDguNDU0LDAsMCwxLDguOTgyLjI2OCw4LjYsOC42LDAsMCwxLDEyLjM1Mi45NThaIiBmaWxsPSIjMzJiZWRkIiAvPjxwYXRoIGQ9Ik0xNi44NzIsNS43bC0xLjA5LS4zOGE2LjYsNi42LDAsMCwwLS43Mi0xLjE2Yy0uMDItLjAzLS4wNC0uMDUtLjA1LS4wN2EyLjA4MywyLjA4MywwLDAsMCwuNzItLjQ1QTcuODEsNy44MSwwLDAsMSwxNi44NzIsNS43WiIgZmlsbD0iIzMyYmVkZCIgLz48cGF0aCBkPSJNMTAuMDcyLDExLjkwOGwyLjU0LjU2TDguNjcyLDE0LjFjLS4wMiwwLS4wMy4wMS0uMDUuMDFhLjE1NC4xNTQsMCwwLDEtLjE1LS4xNVYzLjQ0OGEuMTU0LjE1NCwwLDAsMSwuMTUtLjE1LjA5LjA5LDAsMCwxLC4wNS4wMWw0LjQ2LDEuNTYtMy4wNS41N2EuNTY1LjU2NSwwLDAsMC0uNDQuNTR2NS40QS41MzcuNTM3LDAsMCwwLDEwLjA3MiwxMS45MDhaIiBmaWxsPSIjZmZmIiAvPjxnPjxnIGlkPSJlOTE4ZjI4Ni01MDMyLTQ5NDItYWQyOS1lYTE3ZTZmMWNjOTAiPjxwYXRoIGQ9Ik0xLjEsNS42NjhsMS4yMS0uMjN2Ni41NWwtMS4yMy0uMjctLjk5LS4yMmEuMTExLjExMSwwLDAsMS0uMDktLjEydi01LjRhLjEyLjEyLDAsMCwxLC4wOS0uMTJaIiBmaWxsPSIjYTY3YWY0IiAvPjwvZz48Zz48ZyBpZD0iYTQ3YTk5ZGQtNGQ0Ny00YzcwLThjNDItYzVhYzI3NGNlNDk2Ij48Zz48cGF0aCBkPSJNMTAuMDcyLDExLjkwOGwyLjU0LjU2TDguNjcyLDE0LjFjLS4wMiwwLS4wMy4wMS0uMDUuMDFhLjE1NC4xNTQsMCwwLDEtLjE1LS4xNVYzLjQ0OGEuMTU0LjE1NCwwLDAsMSwuMTUtLjE1LjA5LjA5LDAsMCwxLC4wNS4wMWw0LjQ2LDEuNTYtMy4wNS41N2EuNTY1LjU2NSwwLDAsMC0uNDQuNTR2NS40QS41MzcuNTM3LDAsMCwwLDEwLjA3MiwxMS45MDhaIiBmaWxsPSJ1cmwoI2IyN2YxYWQwLTdkMTEtNDI0Ny05ZGEzLTkxYmNlNjIxMWYzMikiIC8+PHBhdGggZD0iTTguNTg2LDMuMywyLjg3OCw0LjM3OGEuMTc3LjE3NywwLDAsMC0uMTQuMTc1VjEyLjY4YS4xNzcuMTc3LDAsMCwwLC4xMzcuMTc0TDguNTgxLDE0LjFhLjE3Ni4xNzYsMCwwLDAsLjIxLS4xNzRWMy40NzhBLjE3NS4xNzUsMCwwLDAsOC42MTksMy4zWiIgZmlsbD0idXJsKCNiMmY5MjExMi00Y2E5LTRiMTctYTAxOS1jOWYyNmMxYTRhOGYpIiAvPjwvZz48L2c+PHBvbHlnb24gcG9pbnRzPSI1Ljk0OCA0LjkyMSA1Ljk0OCAxMi40ODMgNy45MzQgMTIuODE0IDcuOTM0IDQuNTY0IDUuOTQ4IDQuOTIxIiBmaWxsPSIjYjc5NmY5IiBvcGFjaXR5PSIwLjUiIC8+PHBvbHlnb24gcG9pbnRzPSIzLjUwOSA1LjMyOSAzLjUwOSAxMS45NTQgNS4yMzggMTIuMzE3IDUuMjM4IDUuMDMxIDMuNTA5IDUuMzI5IiBmaWxsPSIjYjc5NmY5IiBvcGFjaXR5PSIwLjUiIC8+PC9nPjwvZz48L2c+PHBhdGggZD0iTTE2LDIuMDQ4YTEuNzU1LDEuNzU1LDAsMSwxLTEuNzYtMS43NkExLjc1NiwxLjc1NiwwLDAsMSwxNiwyLjA0OFoiIGZpbGw9IiMzMmJlZGQiIC8+PGNpcmNsZSBjeD0iNC42NSIgY3k9IjE1Ljk3MyIgcj0iMS43NTkiIGZpbGw9IiMzMmJlZGQiIC8+PC9nPjxwYXRoIGQ9Ik0xOCw2LjY4OXYzLjg0NGEuMjIyLjIyMiwwLDAsMS0uMTMzLjJsLS43NjYuMzE2LTMuMDcsMS4yNjgtLjAxMSwwYS4xMjYuMTI2LDAsMCwxLS4wMzgsMCwuMS4xLDAsMCwxLS4xLS4xVjUuMjM0YS4xLjEsMCwwLDEsLjA1NC0uMDg4bDAsMCwuMDE5LDBhLjAzMS4wMzEsMCwwLDEsLjAxOSwwLC4wNTUuMDU1LDAsMCwxLC4wMzQuMDA4bC4wMTEsMCwuMDEyLDBMMTcuMDUsNi4ybC44LjI4MkEuMjEzLjIxMywwLDAsMSwxOCw2LjY4OVoiIGZpbGw9IiM3NzNhZGMiIC8+PHBhdGggZD0iTTEzLjk1OSw1LjE0bC0zLjguNzE1YS4xMTguMTE4LDAsMCwwLS4wOTMuMTE3djUuNDA5YS4xMTguMTE4LDAsMCwwLC4wOTEuMTE2bDMuOC44MzFhLjExNS4xMTUsMCwwLDAsLjEzNy0uMDkuMTA5LjEwOSwwLDAsMCwwLS4wMjZWNS4yNTZhLjExNy4xMTcsMCwwLDAtLjExNS0uMTE4QS4wODIuMDgyLDAsMCwwLDEzLjk1OSw1LjE0WiIgZmlsbD0iI2E2N2FmNCIgLz48L2c+PC9nPjwvc3ZnPg=="/>
+<image id="ic-table" width="32" height="32" preserveAspectRatio="xMidYMid meet" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgdmlld0JveD0iMCAwIDE4IDE4Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImZjNzQyYjJiLTU3NTAtNDg2NC1iOGRjLWNkY2NhYWM2ZjEzYyIgeDE9IjkiIHkxPSIxNS44MzQiIHgyPSI5IiB5Mj0iNS43ODgiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMwMDc4ZDQiIC8+PHN0b3Agb2Zmc2V0PSIwLjUwMiIgc3RvcC1jb2xvcj0iIzQwOTNlNiIgLz48c3RvcCBvZmZzZXQ9IjAuNzc1IiBzdG9wLWNvbG9yPSIjNWVhMGVmIiAvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjx0aXRsZT5Nc1BvcnRhbEZ4LmJhc2UuaW1hZ2VzLTQ8L3RpdGxlPjxnIGlkPSJmYjMzZjkwMi02NzgzLTRkYjMtODhlYS1hNDUyNGUzNTZjNzciPjxnPjxwYXRoIGQ9Ik0uNSw1Ljc4OGgxN2EwLDAsMCwwLDEsMCwwdjkuNDc4YS41NjguNTY4LDAsMCwxLS41NjguNTY4SDEuMDY4QS41NjguNTY4LDAsMCwxLC41LDE1LjI2NlY1Ljc4OEEwLDAsMCwwLDEsLjUsNS43ODhaIiBmaWxsPSJ1cmwoI2ZjNzQyYjJiLTU3NTAtNDg2NC1iOGRjLWNkY2NhYWM2ZjEzYykiIC8+PHBhdGggZD0iTTEuMDcxLDIuMTY2SDE2LjkyOWEuNTY4LjU2OCwwLDAsMSwuNTY4LjU2OFY1Ljc4OGEwLDAsMCwwLDEsMCwwSC41YTAsMCwwLDAsMSwwLDBWMi43MzRBLjU2OC41NjgsMCwwLDEsMS4wNzEsMi4xNjZaIiBmaWxsPSIjMDA3OGQ0IiAvPjxyZWN0IHg9IjIuMzA0IiB5PSI3LjEyMSIgd2lkdGg9IjMuNjUiIGhlaWdodD0iMS44NSIgcng9IjAuMjgzIiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIwLjkiIC8+PHJlY3QgeD0iNy4yIiB5PSI3LjA5NSIgd2lkdGg9IjMuNjUiIGhlaWdodD0iMS44NSIgcng9IjAuMjgzIiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIwLjkiIC8+PHJlY3QgeD0iMTIuMDk2IiB5PSI3LjA5NSIgd2lkdGg9IjMuNjUiIGhlaWdodD0iMS44NSIgcng9IjAuMjgzIiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIwLjkiIC8+PHJlY3QgeD0iMi4zNTgiIHk9IjkuNzY3IiB3aWR0aD0iMy42NSIgaGVpZ2h0PSIxLjg1IiByeD0iMC4yODMiIGZpbGw9IiNmZmYiIG9wYWNpdHk9IjAuOSIgLz48cmVjdCB4PSI3LjI1NCIgeT0iOS43NDEiIHdpZHRoPSIzLjY1IiBoZWlnaHQ9IjEuODUiIHJ4PSIwLjI4MyIgZmlsbD0iI2ZmZDQwMCIgLz48cmVjdCB4PSIxMi4xNSIgeT0iOS43NDEiIHdpZHRoPSIzLjY1IiBoZWlnaHQ9IjEuODUiIHJ4PSIwLjI4MyIgZmlsbD0iI2ZmZDQwMCIgLz48cmVjdCB4PSIyLjM1OCIgeT0iMTIuNDM5IiB3aWR0aD0iMy42NSIgaGVpZ2h0PSIxLjg1IiByeD0iMC4yODMiIGZpbGw9IiNmZmQ0MDAiIC8+PHJlY3QgeD0iNy4yNTQiIHk9IjEyLjQxMyIgd2lkdGg9IjMuNjUiIGhlaWdodD0iMS44NSIgcng9IjAuMjgzIiBmaWxsPSIjZmZkNDAwIiAvPjxyZWN0IHg9IjEyLjE1IiB5PSIxMi40MTMiIHdpZHRoPSIzLjY1IiBoZWlnaHQ9IjEuODUiIHJ4PSIwLjI4MyIgZmlsbD0iI2ZmZDQwMCIgLz48L2c+PC9nPjwvc3ZnPg=="/>
+<image id="ic-storage" width="32" height="32" preserveAspectRatio="xMidYMid meet" href="data:image/svg+xml;base64,PHN2ZyBpZD0iZjJmMDQzNDktOGFlZS00NDEzLTg0YzktYTkwNTM2MTFiMzE5IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgdmlld0JveD0iMCAwIDE4IDE4Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImFkNGM0Zjk2LTA5YWEtNGY5MS1iYTEwLTVjYjhhZDUzMGY3NCIgeDE9IjkiIHkxPSIxNS44MyIgeDI9IjkiIHkyPSI1Ljc5IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYjNiM2IzIiAvPjxzdG9wIG9mZnNldD0iMC4yNiIgc3RvcC1jb2xvcj0iI2MxYzFjMSIgLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNlNmU2ZTYiIC8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHRpdGxlPkljb24tc3RvcmFnZS04NjwvdGl0bGU+PHBhdGggZD0iTS41LDUuNzloMTdhMCwwLDAsMCwxLDAsMHY5LjQ4YS41Ny41NywwLDAsMS0uNTcuNTdIMS4wN2EuNTcuNTcsMCwwLDEtLjU3LS41N1Y1Ljc5QTAsMCwwLDAsMSwuNSw1Ljc5WiIgZmlsbD0idXJsKCNhZDRjNGY5Ni0wOWFhLTRmOTEtYmExMC01Y2I4YWQ1MzBmNzQpIiAvPjxwYXRoIGQ9Ik0xLjA3LDIuMTdIMTYuOTNhLjU3LjU3LDAsMCwxLC41Ny41N1Y1Ljc5YTAsMCwwLDAsMSwwLDBILjVhMCwwLDAsMCwxLDAsMFYyLjczQS41Ny41NywwLDAsMSwxLjA3LDIuMTdaIiBmaWxsPSIjMzdjMmIxIiAvPjxwYXRoIGQ9Ik0yLjgxLDYuODlIMTUuMThhLjI3LjI3LDAsMCwxLC4yNi4yN3YxLjRhLjI3LjI3LDAsMCwxLS4yNi4yN0gyLjgxYS4yNy4yNywwLDAsMS0uMjYtLjI3VjcuMTZBLjI3LjI3LDAsMCwxLDIuODEsNi44OVoiIGZpbGw9IiNmZmYiIC8+PHBhdGggZD0iTTIuODIsOS42OEgxNS4xOWEuMjcuMjcsMCwwLDEsLjI2LjI3djEuNDFhLjI3LjI3LDAsMCwxLS4yNi4yN0gyLjgyYS4yNy4yNywwLDAsMS0uMjYtLjI3VjEwQS4yNy4yNywwLDAsMSwyLjgyLDkuNjhaIiBmaWxsPSIjMzdjMmIxIiAvPjxwYXRoIGQ9Ik0yLjgyLDEyLjVIMTUuMTlhLjI3LjI3LDAsMCwxLC4yNi4yN3YxLjQxYS4yNy4yNywwLDAsMS0uMjYuMjdIMi44MmEuMjcuMjcsMCwwLDEtLjI2LS4yN1YxMi43N0EuMjcuMjcsMCwwLDEsMi44MiwxMi41WiIgZmlsbD0iIzI1ODI3NyIgLz48L3N2Zz4="/>
+<image id="ic-appi" width="32" height="32" preserveAspectRatio="xMidYMid meet" href="data:image/svg+xml;base64,PHN2ZyBpZD0iYjZmNmQ5OWUtZjMzMC00ODFkLTgzNmYtZWE1OGNjNDIyMTdmIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgdmlld0JveD0iMCAwIDE4IDE4Ij48ZGVmcz48cmFkaWFsR3JhZGllbnQgaWQ9ImE3YTFjNDMxLTZjNmQtNGE4Zi05YTY5LThkYTQzN2U1YjBjNSIgY3g9IjkiIGN5PSI3LjM1IiByPSI2LjQyIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYjc3YWY0IiAvPjxzdG9wIG9mZnNldD0iMC4yMSIgc3RvcC1jb2xvcj0iI2IzNzhmMiIgLz48c3RvcCBvZmZzZXQ9IjAuNDMiIHN0b3AtY29sb3I9IiNhNjcyZWQiIC8+PHN0b3Agb2Zmc2V0PSIwLjY1IiBzdG9wLWNvbG9yPSIjOTI2N2U0IiAvPjxzdG9wIG9mZnNldD0iMC44OCIgc3RvcC1jb2xvcj0iIzc1NTlkOCIgLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM2MjRmZDAiIC8+PC9yYWRpYWxHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9ImVjMGM0ZjBkLTVjOGUtNDg4Mi05NmExLTg5ZDYxODA4ZWI0OSIgeDE9IjkuMDIiIHkxPSIzLjkxIiB4Mj0iOS4wOCIgeTI9IjExLjQ5IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZjJmMmYyIiAvPjxzdG9wIG9mZnNldD0iMC4yMyIgc3RvcC1jb2xvcj0iI2YxZjFmMiIgc3RvcC1vcGFjaXR5PSIwLjk5IiAvPjxzdG9wIG9mZnNldD0iMC4zNyIgc3RvcC1jb2xvcj0iI2VkZWRmMSIgc3RvcC1vcGFjaXR5PSIwLjk1IiAvPjxzdG9wIG9mZnNldD0iMC40OCIgc3RvcC1jb2xvcj0iI2U3ZTVmMCIgc3RvcC1vcGFjaXR5PSIwLjg5IiAvPjxzdG9wIG9mZnNldD0iMC41OCIgc3RvcC1jb2xvcj0iI2RlZGJlZSIgc3RvcC1vcGFjaXR5PSIwLjgxIiAvPjxzdG9wIG9mZnNldD0iMC42NyIgc3RvcC1jb2xvcj0iI2QzY2VlYiIgc3RvcC1vcGFjaXR5PSIwLjciIC8+PHN0b3Agb2Zmc2V0PSIwLjc2IiBzdG9wLWNvbG9yPSIjYzRiZWU4IiBzdG9wLW9wYWNpdHk9IjAuNTciIC8+PHN0b3Agb2Zmc2V0PSIwLjg0IiBzdG9wLWNvbG9yPSIjYjRhYmU1IiBzdG9wLW9wYWNpdHk9IjAuNDEiIC8+PHN0b3Agb2Zmc2V0PSIwLjkyIiBzdG9wLWNvbG9yPSIjYTA5NWUxIiBzdG9wLW9wYWNpdHk9IjAuMjIiIC8+PHN0b3Agb2Zmc2V0PSIwLjk5IiBzdG9wLWNvbG9yPSIjOGI3ZGRjIiBzdG9wLW9wYWNpdHk9IjAuMDIiIC8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjODk3YmRjIiBzdG9wLW9wYWNpdHk9IjAiIC8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHRpdGxlPkljb24tbWFuYWdlLTMxMDwvdGl0bGU+PHBhdGggZD0iTTEwLjIzLDE3LjM5bC44MS0uODdWMTQuMkg3djIuMzJsLjgxLjg3QS4zMi4zMiwwLDAsMCw4LDE3LjVoMkEuMzIuMzIsMCwwLDAsMTAuMjMsMTcuMzlaIiBmaWxsPSIjY2VjZWNlIiAvPjxwYXRoIGQ9Ik05LC41QTUuODksNS44OSwwLDAsMCwzLjA5LDcuMDdjLjI3LDIuNDcsMi42MiwzLjYyLDMuMjksNi43NWEuNDkuNDksMCwwLDAsLjQ3LjM4aDQuM2EuNDkuNDksMCwwLDAsLjQ3LS4zOGMuNjctMy4xMywzLTQuMjgsMy4yOS02Ljc1QTUuODksNS44OSwwLDAsMCw5LC41Wk03LDE0LjIiIGZpbGw9InVybCgjYTdhMWM0MzEtNmM2ZC00YThmLTlhNjktOGRhNDM3ZTViMGM1KSIgLz48cGF0aCBkPSJNMTEuNDYsMy43OWExLjQsMS40LDAsMCwwLTEuMzUsMS40NFY2SDhWNS4yM0ExLjQxLDEuNDEsMCwwLDAsNi41OSwzLjc5LDEuNCwxLjQsMCwwLDAsNS4yNCw1LjIzLDEuNDEsMS40MSwwLDAsMCw2LjU5LDYuNjhoLjY0djZhLjM2LjM2LDAsMCwwLC43Miwwdi02aDIuMTZ2NmEuMzYuMzYsMCwxLDAsLjcyLDB2LTZoLjYzYTEuNCwxLjQsMCwwLDAsMS4zNS0xLjQ1QTEuNCwxLjQsMCwwLDAsMTEuNDYsMy43OVpNNy4yMyw2SDYuNTVhLjc0Ljc0LDAsMCwxLS42OC0uNzcuNzQuNzQsMCwwLDEsLjY4LS43Ny43NC43NCwwLDAsMSwuNjguNzdabTQuMjgsMGgtLjY4VjUuMTlhLjY4LjY4LDAsMSwxLDEuMzUsMEEuNzMuNzMsMCwwLDEsMTEuNTEsNloiIGZpbGw9InVybCgjZWMwYzRmMGQtNWM4ZS00ODgyLTk2YTEtODlkNjE4MDhlYjQ5KSIgLz48cG9seWdvbiBwb2ludHM9IjYuOTYgMTUuOCAxMS4wNCAxNS4wMSAxMS4wNCAxNC41NiA2Ljk2IDE1LjM2IDYuOTYgMTUuOCIgZmlsbD0iIzk5OSIgLz48cG9seWdvbiBwb2ludHM9IjExLjA0IDE2LjExIDExLjA0IDE1LjY3IDYuOTYgMTYuNDggNi45NiAxNi41MiA3LjI3IDE2Ljg2IDExLjA0IDE2LjExIiBmaWxsPSIjOTk5IiAvPjwvc3ZnPg=="/>
+<image id="ic-law" width="32" height="32" preserveAspectRatio="xMidYMid meet" href="data:image/svg+xml;base64,PHN2ZyBpZD0iYjM4OGU5NDQtNTUwOS00OWM5LTg0ZDctZjM4YmZmYTk5NWIyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgdmlld0JveD0iMCAwIDE4IDE4Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImE5OTdlMjAzLTFkN2QtNGNiOS1iMTMxLTVkYzQ0ZTAyOWI0NiIgeDE9IjUuMjMiIHkxPSIxNy40NSIgeDI9IjUuMjMiIHkyPSI4LjA5IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTk4OGQ5IiAvPjxzdG9wIG9mZnNldD0iMC45IiBzdG9wLWNvbG9yPSIjNTRhZWYwIiAvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJlMTIyZTlkOC1hZWU1LTRmMWEtYTYwZS1iMWVhZTM1NWRhYTUiIHgxPSIxMS41IiB5MT0iMTIuNDUiIHgyPSIxMS41IiB5Mj0iMC41NSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzE5OGFiMyIgLz48c3RvcCBvZmZzZXQ9IjAuMDEiIHN0b3AtY29sb3I9IiMxOThiYjQiIC8+PHN0b3Agb2Zmc2V0PSIwLjQ0IiBzdG9wLWNvbG9yPSIjMjdiMmQ3IiAvPjxzdG9wIG9mZnNldD0iMC43OSIgc3RvcC1jb2xvcj0iIzJmY2JlZCIgLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzMmQ0ZjUiIC8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHRpdGxlPkljb24tbWFuYWdlLTMwNzwvdGl0bGU+PHBhdGggZD0iTTUuNTksMTMuMTNIOS45MXY0LjMySDUuNTlaTTEuMTUsMTcuNDVINC44N1YxMy4xM0guNTV2My43MkEuNi42LDAsMCwwLDEuMTUsMTcuNDVabS0uNi01SDQuODdWOC4wOUguNTVaIiBmaWxsPSJ1cmwoI2E5OTdlMjAzLTFkN2QtNGNiOS1iMTMxLTVkYzQ0ZTAyOWI0NikiIC8+PHBhdGggZD0iTTExLjUuNTVhNS44OSw1Ljg5LDAsMCwxLDUuOTUsNiw1Ljg5LDUuODksMCwwLDEtNS45NSw1Ljk1SDUuNTVWNi41QTUuODksNS44OSwwLDAsMSwxMS41LjU1WiIgZmlsbC1ydWxlPSJldmVub2RkIiBmaWxsPSJ1cmwoI2UxMjJlOWQ4LWFlZTUtNGYxYS1hNjBlLWIxZWFlMzU1ZGFhNSkiIC8+PHJlY3QgeD0iNy41OSIgeT0iNS42NSIgd2lkdGg9IjEuMzYiIGhlaWdodD0iNC4wOCIgZmlsbD0iI2ZmZiIgLz48cmVjdCB4PSIxMC4zMSIgeT0iNy4wMSIgd2lkdGg9IjEuMzYiIGhlaWdodD0iMi43MiIgZmlsbD0iI2ZmZiIgLz48cmVjdCB4PSIxMy4wMyIgeT0iNC4yOSIgd2lkdGg9IjEuMzYiIGhlaWdodD0iNS40NCIgZmlsbD0iI2ZmZiIgLz48L3N2Zz4="/>
+<image id="ic-acr" width="32" height="32" preserveAspectRatio="xMidYMid meet" href="data:image/svg+xml;base64,PHN2ZyBpZD0iZTlmN2JhNzMtNTZiOC00ODY0LTk2ZmYtZGNlODBiZWY3MjlhIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgdmlld0JveD0iMCAwIDE4IDE4Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImJkZjI3ZGM2LTAyNWMtNDgwNS04YmZkLTNhMDVkZWZkM2ZiZCIgeDE9IjguNjM3IiB5MT0iLTEuOTkxIiB4Mj0iOC42MzciIHkyPSIxNi43MzkiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM1ZWEwZWYiIC8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDA3OGQ0IiAvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJmY2Q2YzZjNy1lMmViLTRhMzItYjkxNC0zYTg0ODU1ODVhMWIiIHgxPSIxMi45NiIgeTE9IjguNTYxIiB4Mj0iMTIuOTYiIHkyPSI2LjE0MSIgZ3JhZGllbnRUcmFuc2Zvcm09Im1hdHJpeCgxLCAwLCAwLCAtMSwgMCwgMjApIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMzMzMTMyIiAvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzViNWE1YyIgLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cGF0aCBkPSJNNy40Myw4LjE3OGwyLjU4OS0xLjU3Myw3LjI1NSwyLjczMUEzLjY2NCwzLjY2NCwwLDAsMCwxNi4yMyw3LjQ5bC0uMDEtLjA1QTQuMTk0LDQuMTk0LDAsMCwwLDE0LDYuMzJhNC45MSw0LjkxLDAsMCwwLTUuMS00LjdBNS4wNzEsNS4wNzEsMCwwLDAsNC4wNiw0LjkxLDQuNjIxLDQuNjIxLDAsMCwwLDAsOS4zOWE0LjczLDQuNzMsMCwwLDAsNC44OSw0LjU0SDcuNDNaIiBmaWxsPSJ1cmwoI2JkZjI3ZGM2LTAyNWMtNDgwNS04YmZkLTNhMDVkZWZkM2ZiZCkiIC8+PHBvbHlnb24gcG9pbnRzPSIxMC4wNyA3LjE1OSAxMC4wOCAxMS40MzkgMTcuOTkgMTMuMTE5IDE3Ljk5IDEwLjEzOSAxMC4wNyA3LjE1OSIgZmlsbD0iIzc2NzY3NiIgLz48cG9seWxpbmUgcG9pbnRzPSIxMC4wNyA3LjE1OSA3LjkzIDguNDU5IDcuOTMgMTIuNDM5IDEwLjA4IDExLjQzOSIgZmlsbD0iIzk5OSIgLz48cG9seWdvbiBwb2ludHM9IjEzLjY4IDExLjQ5OSAxNC40IDExLjY5OSAxNC40IDkuMzY5IDEzLjY4IDkuMTE5IDEzLjY4IDExLjQ5OSIgZmlsbD0iI2EzYTNhMyIgLz48cG9seWdvbiBwb2ludHM9IjEyLjk2IDguODg5IDEyLjI0IDguNjI5IDEyLjI0IDExLjExOSAxMi45NiAxMS4zMTkgMTIuOTYgOC44ODkiIGZpbGw9IiNhM2EzYTMiIC8+PHBvbHlnb24gcG9pbnRzPSIxNS4xMiAxMS44ODkgMTUuODIgMTIuMDc5IDE1Ljg0IDkuODU5IDE1LjEyIDkuNjE5IDE1LjEyIDExLjg4OSIgZmlsbD0iI2EzYTNhMyIgLz48cG9seWdvbiBwb2ludHM9IjEwLjgxIDEwLjc0OSAxMS41MyAxMC45MjkgMTEuNTMgOC4zOTkgMTAuODEgOC4xNTkgMTAuODEgMTAuNzQ5IiBmaWxsPSIjYTNhM2EzIiAvPjxwb2x5Z29uIHBvaW50cz0iMTcuMjcgMTAuMzQ5IDE2LjU1IDEwLjA5OSAxNi41NSAxMi4yNjkgMTcuMjcgMTIuNDY5IDE3LjI3IDEwLjM0OSIgZmlsbD0iI2EzYTNhMyIgLz48cGF0aCBpZD0iZWYwZDFiNTQtYTFlNy00Y2I5LWE0ZTUtOGE4NTE4ZTdjMTI3IiBkPSJNOC42NiwxMS4zNjlsLS4zNi4yMVY4Ljc0OWwuMzYtLjE5Wm0uNzEtMy4yMkw5LDguMzg5djIuNzVsLjM3LS4yWiIgZmlsbD0iI2IzYjNiMyIgLz48cG9seWdvbiBwb2ludHM9IjE3Ljk5IDEzLjExOSAxNS44MyAxMy44NTkgNy45MyAxMi40MzkgMTAuMDggMTEuNDM5IDE3Ljk5IDEzLjExOSIgZmlsbD0idXJsKCNmY2Q2YzZjNy1lMmViLTRhMzItYjkxNC0zYTg0ODU1ODVhMWIpIiAvPjxwb2x5Z29uIHBvaW50cz0iMTcuOTkgMTYuMTY5IDEwLjA0IDE3LjY3OSAxMC4wOCAxMi4wODkgMTcuOTkgMTMuNTU5IDE3Ljk5IDE2LjE2OSIgZmlsbD0iIzc2NzY3NiIgLz48cG9seWdvbiBwb2ludHM9IjEwLjgxIDE2Ljc1OSAxMC44MSAxMy4yMDkgMTEuNTMgMTMuMjk5IDExLjUzIDE2LjYzOSAxMC44MSAxNi43NTkiIGZpbGw9IiNhM2EzYTMiIC8+PHBvbHlnb24gcG9pbnRzPSIxMi45NiAxNi4zOTkgMTIuMjQgMTYuNTI5IDEyLjI0IDEzLjM4OSAxMi45NiAxMy40OTkgMTIuOTYgMTYuMzk5IDEyLjk2IDE2LjM5OSIgZmlsbD0iI2EzYTNhMyIgLz48cG9seWdvbiBwb2ludHM9IjEzLjY4IDE2LjI4OSAxMy42OCAxMy41NjkgMTQuNCAxMy42NTkgMTQuNCAxNi4xNTkgMTMuNjggMTYuMjg5IiBmaWxsPSIjYTNhM2EzIiAvPjxwb2x5Z29uIHBvaW50cz0iMTUuODMgMTUuOTA5IDE1LjEyIDE2LjAzOSAxNS4xMiAxMy43NDkgMTUuODMgMTMuODU5IDE1LjgzIDE1LjkwOSIgZmlsbD0iI2EzYTNhMyIgLz48cG9seWdvbiBwb2ludHM9IjE3LjI5IDE1LjY3OSAxNi41NSAxNS44MDkgMTYuNTUgMTMuOTI5IDE3LjI0IDE0LjAxOSAxNy4yOSAxNS42NzkiIGZpbGw9IiNhM2EzYTMiIC8+PHBhdGggaWQ9ImI5ZjI1ZWI0LTRjODgtNDVjMi1iYzRkLWY5OTI3NTdkN2UwZSIgZD0iTTcuOTMsMTYuNHYtMy4yNmwyLjE2LTF2NS42WiIgZmlsbD0iIzk5OSIgLz48cGF0aCBpZD0iZWI5MjAwYTctNDY5My00NDI3LWJkYWUtYjMzY2U5MGZmN2YyIiBkPSJNOC42MSwxNi4zODlsLS4zMi0uMTZ2LTIuNzZsLjMyLS4xNVptLjc3LTMuNDUtLjM4LjE5djMuNDhsLjM3LjE5di0zLjg2WiIgZmlsbD0iI2IzYjNiMyIgLz48L3N2Zz4="/>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#081321"/><stop offset="1" stop-color="#101e31"/></linearGradient>
+<linearGradient id="hero" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#102d43"/><stop offset="1" stop-color="#14283a"/></linearGradient>
+<linearGradient id="azure" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10263a"/><stop offset="1" stop-color="#0c1c2c"/></linearGradient>
+<filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000814" flood-opacity=".3"/></filter>
+<marker id="arrow-cyan" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#44d6df"/></marker>
+<marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#60a5fa"/></marker>
+<marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#c4a2ff"/></marker>
+<marker id="arrow-amber" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#f6bd60"/></marker>
+<marker id="arrow-grey" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#8ca5ba"/></marker>
+<style>
+text { font-family: "Segoe UI", "Segoe UI Variable", Arial, sans-serif; fill: #edf4fb; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 2px; fill: #8ca5ba; }
+.title { font-size: 39px; font-weight: 700; letter-spacing: -.6px; }
+.subtitle { font-size: 18px; fill: #a9bdcf; }
+.section { font-size: 14px; font-weight: 700; letter-spacing: 1.5px; fill: #96aec2; }
+.card-title { font-size: 18px; font-weight: 700; }
+.card-title-sm { font-size: 15px; font-weight: 700; }
+.card-sub { font-size: 13px; fill: #a9bdcf; }
+.detail { font-size: 13px; fill: #d1deea; }
+.small { font-size: 12px; fill: #a9bdcf; }
+.tiny { font-size: 11px; fill: #a9bdcf; }
+.tag { font-size: 11px; font-weight: 700; letter-spacing: .8px; }
+.line-label { font-size: 11px; font-weight: 600; paint-order: stroke; stroke: #0b1827; stroke-width: 6px; stroke-linejoin: round; }
+.new { fill: #10253a; stroke: #317c96; stroke-width: 1.5; }
+.existing { fill: #14253a; stroke: #77869a; stroke-width: 1.5; stroke-dasharray: 6 4; }
+.sub { fill: #142b40; stroke: #345570; }
+</style>
+</defs>
+<rect width="1920" height="1080" fill="url(#bg)"/>
+<circle cx="1660" cy="70" r="220" fill="#1a5263" opacity=".08"/><circle cx="1800" cy="170" r="120" fill="#315088" opacity=".08"/>
+<text x="64" y="52" class="eyebrow">SHORTENERTOOLS  /  CLOUD ARCHITECTURE</text>
+<text x="64" y="104" class="title">Production on Azure Container Apps</text>
+<text x="64" y="137" class="subtitle">Four single-replica workloads from one Aspire AppHost. Existing link data retained. Managed identity, isolated secrets, central telemetry.</text>
+<g transform="translate(1476 40)"><rect width="380" height="43" rx="21" fill="#12303a" stroke="#317c96"/><circle cx="22" cy="21.5" r="5" fill="#44d6df"/></g>
+<text x="1515" y="66" class="tag" fill="#9ee8ec">GENERATED FROM ASPIRE APPHOST · NOV 2026</text>
+<g filter="url(#shadow)">
+<rect x="64" y="168" width="440" height="124" rx="16" fill="url(#hero)" stroke="#29445e"/>
+<rect x="524" y="168" width="520" height="124" rx="16" fill="url(#hero)" stroke="#29445e"/>
+<rect x="1064" y="168" width="792" height="124" rx="16" fill="url(#hero)" stroke="#29445e"/>
+</g>
+<text x="86" y="194" class="section">PEOPLE &amp; CALLERS</text>
+<circle cx="100" cy="230" r="15" fill="#143852" stroke="#44d6df"/><path d="M93 236c1-7 13-7 14 0M100 226a4 4 0 1 0 0-8 4 4 0 0 0 0 8" fill="none" stroke="#7ce9ed" stroke-width="2"/>
+<text x="127" y="228" class="card-title-sm">Short-link visitors</text>
+<text x="127" y="245" class="tiny">GET https://&lt;short domain&gt;/&lt;code&gt;</text>
+<circle cx="100" cy="268" r="11" fill="#222a52" stroke="#c4a2ff"/><path d="M95 271c1-5 9-5 10 0m-5-7a3 3 0 1 0 0-6 3 3 0 0 0 0 6" fill="none" stroke="#d8c5ff" stroke-width="1.5"/>
+<text x="127" y="266" class="card-title-sm">Administrator</text>
+<text x="127" y="282" class="tiny">One allowed Entra account</text>
+<circle cx="318" cy="268" r="11" fill="#1b3150" stroke="#60a5fa"/><path d="M313 264h10M313 268h10M313 272h6" stroke="#a8ccff" stroke-width="1.5"/>
+<text x="337" y="266" class="card-title-sm">Trusted automation</text>
+<text x="337" y="282" class="tiny">Calls management API with key</text>
+<text x="546" y="194" class="section">IDENTITY &amp; SHARED CONFIG · PREREQUISITES</text>
+<rect x="544" y="208" width="232" height="70" rx="10" class="sub"/>
+<use href="#ic-entra" transform="translate(556 226) scale(1.0000)"/>
+<text x="598" y="236" class="card-title-sm">Microsoft Entra ID</text>
+<text x="598" y="254" class="tiny">Single-tenant app registration</text>
+<text x="598" y="268" class="tiny">Admin sign-in (OIDC + PKCE)</text>
+<rect x="790" y="208" width="234" height="70" rx="10" class="sub"/>
+<rect x="802" y="227" width="30" height="30" rx="7" fill="#1d3550" stroke="#60a5fa"/><path d="M808 236h18M808 242h18M808 248h18" stroke="#a8ccff" stroke-width="1.6"/><circle cx="813" cy="236" r="2.6" fill="#44d6df"/><circle cx="821" cy="242" r="2.6" fill="#c4a2ff"/><circle cx="816" cy="248" r="2.6" fill="#f6bd60"/>
+<text x="844" y="236" class="card-title-sm">App Configuration</text>
+<text x="844" y="254" class="tiny">Social account credentials</text>
+<text x="844" y="268" class="tiny">Shortener:* keys + sentinel</text>
+<text x="1086" y="194" class="section">EXTERNAL SERVICES · NOT PROVISIONED BY THE DEPLOYMENT</text>
+<rect x="1084" y="208" width="300" height="70" rx="10" class="sub"/>
+<use href="#ic-openai" transform="translate(1096 226) scale(1.0000)"/>
+<text x="1138" y="236" class="card-title-sm">Azure OpenAI</text>
+<text x="1138" y="254" class="tiny">Chat model deployment</text>
+<text x="1138" y="268" class="tiny">Description drafting (CreateDescription)</text>
+<rect x="1398" y="208" width="438" height="70" rx="10" class="sub"/>
+<circle cx="1425" cy="242" r="15" fill="#3c3223" stroke="#f6bd60"/><path d="M1416 238h18v9h-11l-5 4v-4h-2z" fill="none" stroke="#f6bd60" stroke-width="1.6" stroke-linejoin="round"/>
+<text x="1452" y="236" class="card-title-sm">Social networks &amp; email</text>
+<text x="1452" y="254" class="tiny">X · Bluesky · LinkedIn · Mastodon · Threads</text>
+<text x="1452" y="268" class="tiny">Azure Communication Services email (X intents, alerts)</text>
+<rect x="48" y="324" width="1824" height="616" rx="23" fill="url(#azure)" stroke="#28617a" stroke-width="2"/>
+<rect x="72" y="362" width="1202" height="546" rx="17" fill="#0b1b2b" fill-opacity=".85" stroke="#34536c" stroke-width="1.5"/>
+<path d="M150 292V428" fill="none" stroke="#44d6df" stroke-width="2.6" marker-end="url(#arrow-cyan)"/>
+<path d="M232 292V356H600V428" fill="none" stroke="#c4a2ff" stroke-width="2.2" marker-end="url(#arrow-purple)"/>
+<path d="M660 278V428" fill="none" stroke="#c4a2ff" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#arrow-purple)"/>
+<path d="M840 278V428" fill="none" stroke="#c4a2ff" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<path d="M990 278V428" fill="none" stroke="#c4a2ff" stroke-width="1.6" stroke-dasharray="3 4" marker-end="url(#arrow-purple)"/>
+<path d="M440 292V305H1060V428" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#arrow-blue)"/>
+<path d="M1210 428V280" fill="none" stroke="#f6bd60" stroke-width="2" marker-end="url(#arrow-amber)"/>
+<path d="M866 545H914" fill="none" stroke="#60a5fa" stroke-width="2.6" marker-end="url(#arrow-blue)"/>
+<path d="M1150 885V922H1862V304H1780V280" fill="none" stroke="#f6bd60" stroke-width="2" stroke-dasharray="7 6" marker-end="url(#arrow-amber)"/>
+<path d="M1274 466H1338" fill="none" stroke="#44d6df" stroke-width="2" marker-end="url(#arrow-cyan)"/>
+<path d="M1274 583H1338" fill="none" stroke="#44d6df" stroke-width="2" marker-end="url(#arrow-cyan)"/>
+<path d="M1274 681H1338" fill="none" stroke="#c4a2ff" stroke-width="2" marker-end="url(#arrow-purple)"/>
+<path d="M1274 779H1338" fill="none" stroke="#c4a2ff" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#arrow-purple)"/>
+<path d="M1338 868H1276" fill="none" stroke="#8ca5ba" stroke-width="2" marker-end="url(#arrow-grey)"/>
+<rect x="72" y="309" width="560" height="35" rx="17" fill="#0d2031" stroke="#28617a"/>
+<text x="90" y="332" class="section" fill="#71d9df">AZURE · WEST US 2 · rg-shortener-production</text>
+<rect x="84" y="372" width="560" height="30" rx="8" fill="#0b1b2b"/>
+<use href="#ic-acaenv" transform="translate(92 373) scale(0.8750)"/>
+<text x="130" y="393" class="section">CONTAINER APPS ENVIRONMENT (aca) · CONSUMPTION</text>
+<g filter="url(#shadow)">
+<rect x="96" y="430" width="360" height="230" rx="15" class="new"/>
+</g>
+<rect x="96" y="430" width="5" height="230" rx="2" fill="#44d6df"/>
+<text x="118" y="460" class="eyebrow" fill="#74e3e8">PUBLIC EDGE</text>
+<text x="118" y="487" class="card-title">shortenertools-functions</text>
+<text x="118" y="508" class="card-sub">Container App · Azure Functions worker</text>
+<use href="#ic-app" transform="translate(414 440) scale(0.9375)"/>
+<rect x="118" y="522" width="117" height="24" rx="12" fill="#123d45"/>
+<text x="131" y="538.5" class="tag" fill="#7ce9ed">PUBLIC HTTPS</text>
+<rect x="243" y="522" width="125" height="24" rx="12" fill="#123d45"/>
+<text x="256" y="538.5" class="tag" fill="#7ce9ed">CUSTOM DOMAIN</text>
+<text x="118" y="572" class="detail">Allowlist: UrlRedirect only</text>
+<text x="118" y="594" class="detail">1 replica · 0.25 vCPU · 0.5 GiB · always warm</text>
+<text x="118" y="620" class="small">No admin key, AI, App Config or social secrets</text>
+<g filter="url(#shadow)">
+<rect x="506" y="430" width="360" height="230" rx="15" class="new"/>
+</g>
+<rect x="506" y="430" width="5" height="230" rx="2" fill="#c4a2ff"/>
+<text x="528" y="460" class="eyebrow" fill="#d0b7ff">ADMIN EXPERIENCE</text>
+<text x="528" y="487" class="card-title">admin</text>
+<text x="528" y="508" class="card-sub">Container App · Blazor Server + SocialPoster</text>
+<use href="#ic-app" transform="translate(824 440) scale(0.9375)"/>
+<rect x="528" y="522" width="117" height="24" rx="12" fill="#30274c"/>
+<text x="541" y="538.5" class="tag" fill="#d8c5ff">PUBLIC HTTPS</text>
+<rect x="653" y="522" width="102" height="24" rx="12" fill="#30274c"/>
+<text x="666" y="538.5" class="tag" fill="#d8c5ff">ENTRA ONLY</text>
+<text x="528" y="572" class="detail">Links, statistics, compose &amp; schedule</text>
+<text x="528" y="594" class="detail">1 replica · SocialPoster scheduler in-process</text>
+<text x="528" y="620" class="small">Publishes to socials · syncs creds to App Config</text>
+<g filter="url(#shadow)">
+<rect x="916" y="430" width="360" height="230" rx="15" class="new"/>
+</g>
+<rect x="916" y="430" width="5" height="230" rx="2" fill="#60a5fa"/>
+<text x="938" y="460" class="eyebrow" fill="#8fc1ff">MANAGEMENT API</text>
+<text x="938" y="487" class="card-title">management-api</text>
+<text x="938" y="508" class="card-sub">Container App · Azure Functions worker</text>
+<use href="#ic-app" transform="translate(1234 440) scale(0.9375)"/>
+<rect x="938" y="522" width="117" height="24" rx="12" fill="#1b3150"/>
+<text x="951" y="538.5" class="tag" fill="#a8ccff">PUBLIC HTTPS</text>
+<rect x="1063" y="522" width="79" height="24" rx="12" fill="#1b3150"/>
+<text x="1076" y="538.5" class="tag" fill="#a8ccff">API KEY</text>
+<text x="938" y="572" class="detail">14 HTTP functions: links, stats, AI, Coffee</text>
+<text x="938" y="594" class="detail">1 replica · kept warm for Publish</text>
+<text x="938" y="620" class="small">Every route requires X-Admin-Api-Key</text>
+<g filter="url(#shadow)">
+<rect x="916" y="690" width="360" height="195" rx="15" class="new"/>
+</g>
+<rect x="916" y="690" width="5" height="195" rx="2" fill="#f6bd60"/>
+<text x="938" y="720" class="eyebrow" fill="#f5ce87">BACKGROUND WORKER</text>
+<text x="938" y="747" class="card-title">shortenertools-scheduled-posts</text>
+<text x="938" y="768" class="card-sub">Container App · Azure Functions worker</text>
+<use href="#ic-app" transform="translate(1234 700) scale(0.9375)"/>
+<rect x="938" y="782" width="125" height="24" rx="12" fill="#3c3223"/>
+<text x="951" y="798.5" class="tag" fill="#f9d99e">INTERNAL ONLY</text>
+<rect x="1071" y="782" width="87" height="24" rx="12" fill="#3c3223"/>
+<text x="1084" y="798.5" class="tag" fill="#f9d99e">4 TIMERS</text>
+<text x="938" y="832" class="detail">ShortPostTimer + 3 Coffee timers · 1 replica</text>
+<text x="938" y="858" class="small">Default off · GitHub deploy enables all four</text>
+<rect x="96" y="690" width="360" height="195" rx="15" fill="#0f2133" stroke="#2b4a63" stroke-width="1.3"/>
+<text x="116" y="718" class="eyebrow" fill="#74e3e8">INGRESS &amp; DOMAIN</text>
+<text x="116" y="744" class="card-title-sm">Custom short-link domain → redirect</text>
+<text x="116" y="770" class="detail">www.isaacl.dev · SNI binding</text>
+<text x="116" y="791" class="detail">ACA managed certificate, referenced by name</text>
+<text x="116" y="812" class="detail">DNS + first certificate: one-time operator step</text>
+<text x="116" y="836" class="small">Declared in the AppHost, so redeploys keep it</text>
+<g transform="translate(418 704)"><circle cx="12" cy="12" r="11" fill="none" stroke="#44d6df" stroke-width="1.6"/><path d="M1 12h22M12 1c5 6 5 16 0 22M12 1c-5 6-5 16 0 22" fill="none" stroke="#44d6df" stroke-width="1.3"/></g>
+<rect x="506" y="690" width="360" height="195" rx="15" fill="#0f2133" stroke="#2b4a63" stroke-width="1.3"/>
+<text x="526" y="718" class="eyebrow" fill="#d0b7ff">ENVIRONMENT COMPONENTS</text>
+<text x="526" y="744" class="card-title-sm">Created with the environment</text>
+<text x="526" y="770" class="detail">Volume socialposter-data → admin</text>
+<text x="526" y="791" class="detail">  mounted at /mnt/socialposter-data (RW, nobrl)</text>
+<text x="526" y="812" class="detail">Aspire dashboard (ACA .NET component)</text>
+<text x="526" y="833" class="detail">Image-pull identity with AcrPull</text>
+<g transform="translate(828 704)"><rect x="1" y="3" width="22" height="18" rx="3" fill="none" stroke="#c4a2ff" stroke-width="1.6"/><path d="M5 9h14M5 14h9" stroke="#c4a2ff" stroke-width="1.4"/></g>
+<text x="1342" y="393" class="section">DATA &amp; OPERATIONS</text>
+<g filter="url(#shadow)">
+<rect x="1340" y="405" width="510" height="122" rx="14" class="existing"/>
+</g>
+<use href="#ic-table" transform="translate(1360 419) scale(0.9375)"/>
+<text x="1404" y="439" class="card-title-sm">URL data storage account</text>
+<rect x="1743" y="421" width="87" height="24" rx="12" fill="#303b49"/>
+<text x="1756" y="437.5" class="tag" fill="#c0cad5">EXISTING</text>
+<text x="1360" y="465" class="detail">Tables: UrlsDetails · ClickStats · PostVersions</text>
+<text x="1360" y="485" class="detail">Attached by name (AsExisting) · never created or changed</text>
+<text x="1360" y="507" class="small">3 Functions identities → Storage Table Data Contributor</text>
+<g filter="url(#shadow)">
+<rect x="1340" y="541" width="510" height="84" rx="14" class="new"/>
+</g>
+<use href="#ic-storage" transform="translate(1360 555) scale(0.9375)"/>
+<text x="1404" y="575" class="card-title-sm">Functions host storage</text>
+<rect x="1781" y="557" width="49" height="24" rx="12" fill="#123d45"/>
+<text x="1794" y="573.5" class="tag" fill="#7ce9ed">NEW</text>
+<text x="1360" y="601" class="detail">Leases, timer status, queues · no link data</text>
+<g filter="url(#shadow)">
+<rect x="1340" y="639" width="510" height="84" rx="14" class="new"/>
+</g>
+<use href="#ic-storage" transform="translate(1360 653) scale(0.9375)"/>
+<text x="1404" y="673" class="card-title-sm">SocialPoster file storage (Azure Files)</text>
+<rect x="1781" y="655" width="49" height="24" rx="12" fill="#123d45"/>
+<text x="1794" y="671.5" class="tag" fill="#7ce9ed">NEW</text>
+<text x="1360" y="699" class="detail">Share socialposter-data: SQLite DB + Data Protection keys</text>
+<g filter="url(#shadow)">
+<rect x="1340" y="737" width="510" height="84" rx="14" class="new"/>
+</g>
+<use href="#ic-appi" transform="translate(1360 751) scale(0.9375)"/>
+<use href="#ic-law" transform="translate(1386 751) scale(0.9375)"/>
+<text x="1430" y="771" class="card-title-sm">Application Insights + Log Analytics</text>
+<rect x="1781" y="753" width="49" height="24" rx="12" fill="#123d45"/>
+<text x="1794" y="769.5" class="tag" fill="#7ce9ed">NEW</text>
+<text x="1360" y="797" class="detail">All 4 apps · OpenTelemetry · distinct cloud roles</text>
+<g filter="url(#shadow)">
+<rect x="1340" y="835" width="510" height="70" rx="14" class="new"/>
+</g>
+<use href="#ic-acr" transform="translate(1360 849) scale(0.9375)"/>
+<text x="1404" y="869" class="card-title-sm">Container Registry (Basic) + env logs</text>
+<rect x="1781" y="851" width="49" height="24" rx="12" fill="#123d45"/>
+<text x="1794" y="867.5" class="tag" fill="#7ce9ed">NEW</text>
+<text x="1360" y="895" class="detail">Images pushed by aspire deploy · ACA Log Analytics</text>
+<text x="1305" y="458" class="line-label" fill="#7ce9ed" text-anchor="middle">MI</text>
+<text x="1305" y="575" class="line-label" fill="#7ce9ed" text-anchor="middle">MI</text>
+<text x="1305" y="673" class="line-label" fill="#d8c5ff" text-anchor="middle">SMB</text>
+<text x="1305" y="771" class="line-label" fill="#d8c5ff" text-anchor="middle">OTel</text>
+<text x="1305" y="860" class="line-label" fill="#c0cad5" text-anchor="middle">pull</text>
+<text x="668" y="352" class="line-label" fill="#d8c5ff">OIDC</text>
+<text x="848" y="352" class="line-label" fill="#d8c5ff">read/write</text>
+<text x="998" y="352" class="line-label" fill="#d8c5ff">read-only</text>
+<text x="1068" y="300" class="line-label" fill="#a8ccff">HTTPS · X-Admin-Api-Key (automation)</text>
+<text x="1218" y="352" class="line-label" fill="#f6bd60">chat completions</text>
+<text x="1846" y="915" class="line-label" fill="#f6bd60" text-anchor="end">social posts + email · after timer cutover</text>
+<text x="891" y="536" class="line-label" fill="#a8ccff" text-anchor="middle">API key</text>
+<text x="420" y="360" class="line-label" fill="#d8c5ff" text-anchor="middle">browser · HTTPS</text>
+<line x1="65" y1="967" x2="1855" y2="967" stroke="#24394e"/>
+<text x="68" y="1002" class="section">READING THE DIAGRAM</text>
+<path d="M288 997h40" stroke="#44d6df" stroke-width="2.2" marker-end="url(#arrow-cyan)"/>
+<text x="338" y="1002" class="small">request / data (MI = managed identity)</text>
+<path d="M591.8 997h40" stroke="#60a5fa" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
+<text x="641.8" y="1002" class="small">management API calls</text>
+<path d="M785.8 997h40" stroke="#c4a2ff" stroke-width="2.2" marker-end="url(#arrow-purple)"/>
+<text x="835.8" y="1002" class="small">identity / config / mount</text>
+<path d="M1010.3 997h40" stroke="#c4a2ff" stroke-width="2.2" stroke-dasharray="5 5" marker-end="url(#arrow-purple)"/>
+<text x="1060.3" y="1002" class="small">telemetry</text>
+<path d="M1137.2 997h40" stroke="#f6bd60" stroke-width="2.2" stroke-dasharray="7 6" marker-end="url(#arrow-amber)"/>
+<text x="1187.2" y="1002" class="small">outbound to external services</text>
+<rect x="1386.1" y="987" width="88" height="22" rx="11" fill="#303b49"/>
+<text x="1400.1" y="1002" class="tag" fill="#c0cad5">EXISTING</text>
+<text x="1484.1" y="1002" class="small">attached, not managed</text>
+<rect x="1632.1" y="987" width="52" height="22" rx="11" fill="#123d45"/>
+<text x="1645.1" y="1002" class="tag" fill="#7ce9ed">NEW</text>
+<text x="1694.1" y="1002" class="small">created by aspire deploy</text>
+<text x="68" y="1041" class="tiny">Every app runs exactly one replica. Timers default to disabled; the production GitHub workflow enables all four after deploy. Staging uses a new data account, internal management API, no custom domain, AI or posting.</text>
+<text x="1852" y="1041" class="tiny" text-anchor="end">SOURCE: src/ShortenerTools.AppHost/Program.cs · 04 NOV 2026</text>
+</svg>
