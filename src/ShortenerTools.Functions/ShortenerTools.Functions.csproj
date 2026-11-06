@@ -1,8 +1,10 @@
 ﻿<Project Sdk="Azure.Functions.Sdk">
     <PropertyGroup>
         <UserSecretsId>ec466037-9a72-4ed2-ab84-28c517f1b122</UserSecretsId>
-        <!-- MCR has not published the floating 4-dotnet-isolated11.0 tag; pin a versioned one. -->
-        <ContainerBaseImage>mcr.microsoft.com/azure-functions/dotnet-isolated:4.1053.200-9-dotnet-isolated11.0</ContainerBaseImage>
+        <!-- While .NET 11 is prerelease, this image's runtime (DOTNET_VERSION) must exactly match the SDK pinned in
+             global.json, or the isolated worker exits with code 150 and the host crash-loops. 4.1055.300-3 ships
+             11.0.0-rc.3.26522.148. After GA, any 11.0.x image works (e.g. floating 4-dotnet-isolated11.0-azurelinux3). -->
+        <ContainerBaseImage>mcr.microsoft.com/azure-functions/dotnet-isolated:4.1055.300-3-dotnet-isolated11.0-azurelinux3</ContainerBaseImage>
     </PropertyGroup>
     <ItemGroup>
         <None Include="local.settings.json"/>
@@ -55,4 +57,15 @@
         <Using Include="System.Threading.ExecutionContext" Alias="ExecutionContext"/>
         <InternalsVisibleTo Include="ShortenerTools.Tests"/>
     </ItemGroup>
+
+    <!-- Azure.Functions.Sdk always sets the Debian images' /opt/startup/start_nonappservice.sh entrypoint, which the
+         -azurelinux3 images don't have. That script only installs custom CA certificates and then runs the host binary,
+         so start the host directly. Applies only when the base image is an -azurelinux3 tag. -->
+    <Target Name="UseAzureLinuxFunctionsHostEntrypoint" AfterTargets="AssignFunctionsBaseImage"
+            Condition="$(ContainerBaseImage.Contains('-azurelinux3'))">
+        <ItemGroup>
+            <ContainerAppCommand Remove="@(ContainerAppCommand)"/>
+            <ContainerAppCommand Include="/azure-functions-host/Microsoft.Azure.WebJobs.Script.WebHost"/>
+        </ItemGroup>
+    </Target>
 </Project>
