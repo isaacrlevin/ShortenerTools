@@ -62,18 +62,23 @@ from its hostname; an inherited hostname cannot override that derived value.
 
 ### Retaining the redirect custom domain on redeployment
 
-The AppHost declares the redirect ingress binding with `ConfigureCustomDomain`.
-Without this declaration, deploying its generated ingress configuration removes
-custom domains added manually in the Azure portal. DNS validation and initial
-managed certificate issuance remain operator steps; subsequent deployments reuse
-that certificate rather than requesting a new one.
+The AppHost declares the redirect ingress binding with `BindUploadedCertificate`
+(in `Program.cs`). Without this declaration, deploying its generated ingress
+configuration removes custom domains added manually in the Azure portal.
+`www.isaacl.dev` is proxied through Cloudflare, so the binding uses a
+**Cloudflare Origin CA certificate uploaded to the ACA environment**
+(`<environment>/certificates/<name>`), not an ACA managed certificate. DNS,
+the certificate upload and the first binding remain operator steps (see
+[Custom domain and certificate](deployment.md#custom-domain-and-certificate));
+subsequent deployments reuse that certificate.
 
-Supply the **managed certificate name**, not its resource ID, using
+Supply the **uploaded certificate name**, not its resource ID, using
 `ProductionDeployment:RedirectCertificateName` with `-LoadUserSecrets`,
 `Parameters:redirect-certificate-name`, or
 `Parameters__redirect_certificate_name`. For GitHub deployments, set the
-production environment variable `REDIRECT_CERTIFICATE_NAME`. The current
-`www.isaacl.dev` binding uses `www.isaacl.dev-rg-short-261008231256`.
+production environment variable `REDIRECT_CERTIFICATE_NAME`. A managed
+certificate name no longer works: the deployment would point the binding at a
+certificate that does not exist under `/certificates/`.
 Confirm the certificate still exists in the target ACA environment before using
 that name. The helper requires this input and fails before deployment if missing,
 rather than silently deploying an unbound production domain.

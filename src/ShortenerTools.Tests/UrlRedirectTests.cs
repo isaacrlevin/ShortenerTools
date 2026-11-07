@@ -60,6 +60,93 @@ public class UrlRedirectTests
     }
 
     [TestMethod]
+    public async Task ActiveLinkRecordsCloudflareVisitorLocation()
+    {
+        var storage = new Mock<StorageTableHelper>();
+        storage.Setup(x => x.GetShortUrlEntity(It.IsAny<ShortUrlEntity>()))
+            .ReturnsAsync(new ShortUrlEntity("https://destination.example", "link"));
+        using var request = new FunctionRequest(userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0",
+            headers: new Dictionary<string, string>
+            {
+                ["CF-IPCountry"] = "us", ["cf-region"] = "Washington", ["cf-ipcity"] = " Seattle ",
+                ["cf-iplatitude"] = "47.60621", ["cf-iplongitude"] = "-122.33207"
+            });
+        var function = new UrlRedirect(NullLoggerFactory.Instance, new ShortenerSettings(), storage.Object);
+
+        await function.Run(request.Request, "link", null!);
+
+        storage.Verify(x => x.SaveClickStatsEntity(It.Is<ClickStatsEntity>(click =>
+            click.Country == "US" && click.Region == "Washington" && click.City == "Seattle" &&
+            click.Latitude == 47.6 && click.Longitude == -122.3)), Times.Once);
+    }
+
+    [TestMethod]
+    [DataRow("47.6", null)]
+    [DataRow("91", "10")]
+    [DataRow("10", "-180.5")]
+    [DataRow("NaN", "10")]
+    [DataRow("not-a-number", "10")]
+    public void CoordinatesAreStoredOnlyAsAValidPair(string? latitude, string? longitude)
+    {
+        var headers = new Microsoft.Azure.Functions.Worker.Http.HttpHeadersCollection();
+        if (latitude is not null)
+            headers.Add("cf-iplatitude", latitude);
+        if (longitude is not null)
+            headers.Add("cf-iplongitude", longitude);
+
+        var location = UrlRedirect.ReadVisitorLocation(headers);
+
+        Assert.IsNull(location.Latitude);
+        Assert.IsNull(location.Longitude);
+    }
+
+    [TestMethod]
+    public void CoordinatesAreRoundedToOneDecimalPlace()
+    {
+        var headers = new Microsoft.Azure.Functions.Worker.Http.HttpHeadersCollection();
+        headers.Add("cf-iplatitude", "-33.86785");
+        headers.Add("cf-iplongitude", "151.20732");
+
+        var location = UrlRedirect.ReadVisitorLocation(headers);
+
+        Assert.AreEqual(-33.9, location.Latitude);
+        Assert.AreEqual(151.2, location.Longitude);
+    }
+
+    [TestMethod]
+    public async Task ActiveLinkWithoutCloudflareHeadersHasNoLocation()
+    {
+        var storage = new Mock<StorageTableHelper>();
+        storage.Setup(x => x.GetShortUrlEntity(It.IsAny<ShortUrlEntity>()))
+            .ReturnsAsync(new ShortUrlEntity("https://destination.example", "link"));
+        using var request = new FunctionRequest(userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0");
+        var function = new UrlRedirect(NullLoggerFactory.Instance, new ShortenerSettings(), storage.Object);
+
+        await function.Run(request.Request, "link", null!);
+
+        storage.Verify(x => x.SaveClickStatsEntity(It.Is<ClickStatsEntity>(click =>
+            click.Country == null && click.Region == null && click.City == null &&
+            click.Latitude == null && click.Longitude == null)), Times.Once);
+    }
+
+    [TestMethod]
+    [DataRow("XX")]
+    [DataRow("T1")]
+    [DataRow("  ")]
+    public void UnknownTorAndBlankCountriesAreNotRecorded(string country)
+    {
+        var headers = new Microsoft.Azure.Functions.Worker.Http.HttpHeadersCollection();
+        headers.Add("CF-IPCountry", country);
+        headers.Add("cf-ipcity", new string('a', 500));
+
+        var location = UrlRedirect.ReadVisitorLocation(headers);
+
+        Assert.IsNull(location.Country);
+        Assert.IsNull(location.Region);
+        Assert.AreEqual(100, location.City!.Length);
+    }
+
+    [TestMethod]
     public async Task ActiveLinkStillSuppressesBotsWithoutTracking()
     {
         var storage = new Mock<StorageTableHelper>();

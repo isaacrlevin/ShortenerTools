@@ -1,0 +1,84 @@
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
+@inject ILogger<ClickMap> Logger
+
+<MudPaper Class="pa-4" Outlined="true">
+    <MudText Typo="Typo.h6">Click Locations</MudText>
+    @* The map is a visual summary; the Country and City tables below carry the same numbers as text. *@
+    <div @ref="mapElement" class="click-map mt-2" role="img" aria-label="@AriaLabel"></div>
+    @if (mapFailed)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">The map could not be loaded. The tables below show the same data.</MudAlert>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ClickStatsEntity> Clicks { get; set; } = Array.Empty<ClickStatsEntity>();
+
+    private ElementReference mapElement;
+    private IJSObjectReference module;
+    private IReadOnlyList<ClickMapPoint> points = Array.Empty<ClickMapPoint>();
+    private bool pointsChanged;
+    private bool mapFailed;
+
+    private string AriaLabel => points.Count == 0
+        ? "Map of click locations: no located clicks"
+        : $"Map of click locations: {points.Sum(p => p.Clicks)} clicks across {points.Count} places";
+
+    private IReadOnlyList<ClickStatsEntity> renderedClicks;
+
+    // The page builds a new list whenever its filters change. Other parent re-renders (paging the daily table) pass the
+    // same list and must not redraw the map, which would reset the user's pan and zoom.
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(Clicks, renderedClicks))
+            return;
+        renderedClicks = Clicks;
+        points = ClickMapPoints.Build(Clicks);
+        pointsChanged = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!pointsChanged)
+            return;
+        pointsChanged = false;
+        try
+        {
+            module ??= await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/clickMap.js");
+            await module.InvokeVoidAsync("render", mapElement, points.Select(p => new
+            {
+                latitude = p.Latitude,
+                longitude = p.Longitude,
+                label = p.Label,
+                clicks = p.Clicks,
+                countryOnly = p.CountryOnly
+            }));
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is gone; nothing to draw.
+        }
+        catch (JSException ex)
+        {
+            Logger.LogError(ex, "Unable to render the click map");
+            mapFailed = true;
+            StateHasChanged();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (module is null)
+            return;
+        try
+        {
+            await module.InvokeVoidAsync("dispose", mapElement);
+            await module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+}

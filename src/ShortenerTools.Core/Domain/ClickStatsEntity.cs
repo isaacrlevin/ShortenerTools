@@ -39,6 +39,17 @@ namespace ShortenerTools.Core.Domain
         public string MobileManufacturer { get; set; }
         public string MobileModel { get; set; }
         public string MobileDevice { get; set; }
+
+        // Visitor location from Cloudflare's geolocation headers. The visitor's IP address is never stored.
+        // Clicks recorded before the short-link domain was proxied through Cloudflare have no location.
+        public string? Country { get; set; }
+        public string? Region { get; set; }
+        public string? City { get; set; }
+
+        // Approximate visitor position (one decimal place, about 11 km) for the Statistics map. Stored only as a pair.
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+
         public string PartitionKey { get; set; }
         public string RowKey { get; set; }
         public DateTimeOffset? Timestamp { get; set; }
@@ -113,6 +124,12 @@ namespace ShortenerTools.Core.Domain
                 {                  
                 }
             }
+
+            this.Country = parsed.Country;
+            this.Region = parsed.Region;
+            this.City = parsed.City;
+            this.Latitude = parsed.Latitude;
+            this.Longitude = parsed.Longitude;
 
             this.Timestamp = parsed.TimeStamp;
             this.Host = parsed.LongUrl.DnsSafeHost;

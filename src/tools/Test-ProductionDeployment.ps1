@@ -115,7 +115,7 @@ try {
     Assert ($observed['Parameters__custom-domain'] -eq 'https://production.example.com') 'Production domain must override local Parameters.'
     Assert ($observed['Parameters__redirect-domain-name'] -eq 'production.example.com' -and
         $observed['Parameters__redirect_domain_name'] -eq 'production.example.com') 'Ingress hostname must be derived from the production URL in both parameter forms.'
-    Assert ($observed['Parameters__redirect-certificate-name'] -eq 'production.example.com-managed') 'Production managed certificate must be imported.'
+    Assert ($observed['Parameters__redirect-certificate-name'] -eq 'production.example.com-managed') 'Production certificate name must be imported.'
     Assert ([string]::IsNullOrEmpty([Environment]::GetEnvironmentVariable('Parameters__redirect-domain-name'))) 'Derived hostname must be restored.'
     Assert ($observed['Parameters__default-redirect-url'] -eq 'https://fallback.example.com') 'Production fallback must override local Parameters.'
     Assert ($observed['Parameters__existing-storage-account'] -eq 'productionstorage') 'Production storage must override local Parameters.'
@@ -176,7 +176,7 @@ try {
     Assert ($env:Parameters__redirect_domain_name -eq 'incorrect.example.com') 'Inherited hostname must be restored.'
     $env:Parameters__redirect_domain_name = $null
     $env:Parameters__redirect_certificate_name = '/subscriptions/synthetic/certificate'
-    Expect-Failure { & $helper @options } 'existing ACA managed certificate name'
+    Expect-Failure { & $helper @options } 'certificate uploaded to the ACA environment'
     $env:Parameters__redirect_certificate_name = $null
     foreach ($url in @('https://production.example.com/path', 'https://production.example.com?query=1',
         'https://production.example.com#fragment', 'https://production.example.com:8443')) {

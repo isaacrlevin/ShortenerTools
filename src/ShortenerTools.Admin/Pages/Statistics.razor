@@ -60,7 +60,18 @@ else
             <MudItem xs="12" sm="6" lg="3"><StatisticsPie Title="Platform Statistics" Clicks="filteredClicks" Category="@(x => x.Platform)" /></MudItem>
             <MudItem xs="12" sm="6" lg="3"><StatisticsPie Title="Mobile Browser Statistics" Clicks="filteredClicks" Category="@(x => x.Browser)" /></MudItem>
             <MudItem xs="12" sm="6" lg="3"><StatisticsPie Title="Device Type Statistics" Clicks="filteredClicks" Category="@(x => x.IsDesktop ? "Desktop" : "Mobile")" /></MudItem>
+            @* Location comes from Cloudflare's geolocation headers; clicks recorded before that have no location. The map
+               draws it; the tables below give the exact counts as text. *@
+            <MudItem xs="12"><ClickMap Clicks="locatedClicks" /></MudItem>
+            <MudItem xs="12" sm="6"><StatisticsPie Title="Country Statistics" Clicks="locatedClicks" ShowChart="false" Category="@(x => string.IsNullOrEmpty(x.Country) ? "Unknown" : ClickMapPoints.CountryName(x.Country))" /></MudItem>
+            <MudItem xs="12" sm="6"><StatisticsPie Title="City Statistics" Clicks="locatedClicks" ShowChart="false" Category="ClickMapPoints.CityLabel" /></MudItem>
         </MudGrid>
+        @if (locatedClicks.Count < filteredClicks.Count)
+        {
+            <MudText Typo="Typo.caption" Class="d-block mt-2">
+                @(filteredClicks.Count - locatedClicks.Count) click(s) have no location (recorded before location tracking, or Cloudflare could not place them) and are left out of the map and location tables.
+            </MudText>
+        }
         <MudExpansionPanels Class="mt-4">
             <MudExpansionPanel Text="Click Data">
                 <MudDataGrid T="ClickStatsEntity" Items="filteredClicks" RowsPerPage="50" SortMode="SortMode.Multiple" Dense="true" Hover="true">
@@ -72,6 +83,8 @@ else
                         <PropertyColumn Property="x => x.ShortUrl" Title="ShortUrl" />
                         <PropertyColumn Property="x => x.BrowserWithVersion" Title="Browser" />
                         <PropertyColumn Property="x => x.PlatformWithVersion" Title="Platform" />
+                        <PropertyColumn Property="x => x.Country" Title="Country" />
+                        <PropertyColumn Property="x => x.City" Title="City" />
                         <PropertyColumn Property="x => x.ReferrerUrl" Title="ReferrerUrl" />
                     </Columns>
                     <PagerContent><MudDataGridPager T="ClickStatsEntity" PageSizeOptions="@(new[] { 50, 100 })" /></PagerContent>
@@ -89,6 +102,7 @@ else
     private string errorMessage;
     private List<ClickStatsEntity> clicks = new();
     private List<ClickStatsEntity> filteredClicks = new();
+    private List<ClickStatsEntity> locatedClicks = new();
     private DateRange dateRange;
     // Link-preview fetchers and detected crawlers are flagged IsCrawler when recorded; hide them unless asked.
     private bool hideCrawlers = true;
@@ -221,6 +235,8 @@ else
         }
 
         filteredClicks = visible.Select(x => x.Click).ToList();
+        locatedClicks = filteredClicks
+            .Where(x => !string.IsNullOrEmpty(x.Country) || (x.Latitude.HasValue && x.Longitude.HasValue)).ToList();
         var daily = visible.GroupBy(x => x.Day).OrderBy(x => x.Key).ToList();
         chartOptions = BuildChartOptions(daily.Count == 0 ? 1 : (daily[^1].Key - daily[0].Key).Days + 1);
         dailyPage = 1;

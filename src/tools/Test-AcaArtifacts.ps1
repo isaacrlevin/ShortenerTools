@@ -77,7 +77,7 @@ if ($DeploymentEnvironment -eq 'Production') {
     Assert-Condition ($domains.Count -eq 1) 'Production redirect must declare its custom domain so redeploys retain the binding.'
     Assert-Condition ($domains[0].name -eq "[parameters('redirect_domain_name')]") 'Ingress must use a hostname parameter, not the full short-link URL.'
     Assert-Condition ($domains[0].bindingType -eq "[if(not(equals(parameters('redirect_certificate_name'), '')), 'SniEnabled', 'Disabled')]") 'Configured certificates must enable SNI binding.'
-    Assert-Condition ($domains[0].certificateId -eq "[if(not(equals(parameters('redirect_certificate_name'), '')), format('{0}/managedCertificates/{1}', parameters('aca_outputs_azure_container_apps_environment_id'), parameters('redirect_certificate_name')), null())]") 'Redirect must reuse the existing managed certificate in its ACA environment.'
+    Assert-Condition ($domains[0].certificateId -eq "[if(not(equals(parameters('redirect_certificate_name'), '')), format('{0}/certificates/{1}', parameters('aca_outputs_azure_container_apps_environment_id'), parameters('redirect_certificate_name')), null())]") 'Redirect must reuse the existing uploaded (Cloudflare Origin CA) certificate in its ACA environment.'
 }
 else {
     Assert-Condition (@($domains | Where-Object { $null -ne $_ }).Count -eq 0) 'Staging must not bind the production custom domain.'

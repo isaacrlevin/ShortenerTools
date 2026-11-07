@@ -5,6 +5,11 @@
              global.json, or the isolated worker exits with code 150 and the host crash-loops. 4.1055.300-3 ships
              11.0.0-rc.3.26522.148. After GA, any 11.0.x image works (e.g. floating 4-dotnet-isolated11.0-azurelinux3). -->
         <ContainerBaseImage>mcr.microsoft.com/azure-functions/dotnet-isolated:4.1055.300-3-dotnet-isolated11.0-azurelinux3</ContainerBaseImage>
+        <!-- The SDK defaults this image to the non-root "app" user (UID 1654), but /azure-functions-host is root-owned
+             (755) and the host creates /azure-functions-host/Secrets at startup on ACA. As UID 1654 that fails with
+             "Access to the path '/azure-functions-host/Secrets' is denied" and every request returns 503. Run as root,
+             like the Functions base images do by default. -->
+        <ContainerUser>root</ContainerUser>
     </PropertyGroup>
     <ItemGroup>
         <None Include="local.settings.json"/>

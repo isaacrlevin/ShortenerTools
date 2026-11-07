@@ -14,7 +14,8 @@ internal sealed class FunctionRequest : IDisposable
     public HttpRequestData Request { get; }
     public HttpResponseData Response { get; }
 
-    public FunctionRequest(string body = "{}", string? userAgent = null, string? referrer = null, string? url = null)
+    public FunctionRequest(string body = "{}", string? userAgent = null, string? referrer = null, string? url = null,
+        IReadOnlyDictionary<string, string>? headers = null)
     {
         _services = new ServiceCollection()
             .Configure<WorkerOptions>(options => options.Serializer = new JsonObjectSerializer())
@@ -27,14 +28,16 @@ internal sealed class FunctionRequest : IDisposable
         response.SetupProperty(x => x.Headers, new HttpHeadersCollection());
         Response = response.Object;
 
-        var headers = new HttpHeadersCollection();
+        var requestHeaders = new HttpHeadersCollection();
         if (userAgent is not null)
-            headers.Add("User-Agent", userAgent);
+            requestHeaders.Add("User-Agent", userAgent);
         if (referrer is not null)
-            headers.Add("Referer", referrer);
+            requestHeaders.Add("Referer", referrer);
+        foreach (var (name, value) in headers ?? new Dictionary<string, string>())
+            requestHeaders.Add(name, value);
         var request = new Mock<HttpRequestData>(context.Object);
         request.SetupGet(x => x.Body).Returns(new MemoryStream(Encoding.UTF8.GetBytes(body)));
-        request.SetupGet(x => x.Headers).Returns(headers);
+        request.SetupGet(x => x.Headers).Returns(requestHeaders);
         request.SetupGet(x => x.Url).Returns(new Uri(url ?? "https://short.example/api/UrlClickStatsByDay"));
         request.Setup(x => x.CreateResponse()).Returns(Response);
         Request = request.Object;

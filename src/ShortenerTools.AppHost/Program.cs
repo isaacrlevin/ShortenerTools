@@ -186,7 +186,7 @@ var redirect = builder.AddAzureFunctionsProject<Projects.ShortenerTools_Function
     .WithEnvironment("DefaultRedirectUrl", defaultRedirectUrl)
     .WithEnvironment("AzureWebJobs.ShortPostTimer.Disabled", "true")
     .WithEnvironment("IN_ASPIRE", "true")
-    .PublishAsAzureContainerApp((_, app) =>
+    .PublishAsAzureContainerApp((infrastructure, app) =>
     {
         // The public redirect endpoint stays warm and has exactly one replica.
         app.Template.Scale.MinReplicas = 1;
@@ -195,7 +195,7 @@ var redirect = builder.AddAzureFunctionsProject<Projects.ShortenerTools_Function
         app.Template.Containers[0].Value.Resources.Memory = "0.5Gi";
         if (redirectDomainName is not null && redirectCertificateName is not null)
         {
-            app.ConfigureCustomDomain(redirectDomainName, redirectCertificateName);
+            BindUploadedCertificate(infrastructure, app, redirectDomainName, redirectCertificateName);
         }
     });
 if (builder.ExecutionContext.IsRunMode)
@@ -405,3 +405,39 @@ foreach (var functions in new[] { redirect, managementApi, scheduledPosts })
 }
 
 builder.Build().Run();
+
+// Binds the short-link hostname to a certificate uploaded to the ACA environment (the Cloudflare Origin CA certificate
+// for the proxied short-link domain). Aspire's ConfigureCustomDomain only targets ACA managed certificates
+// (.../managedCertificates/{name}); uploaded certificates live at .../certificates/{name}. An empty certificate name
+// keeps the hostname declared but disables the binding, matching ConfigureCustomDomain's bootstrap behavior.
+static void BindUploadedCertificate(
+    AzureResourceInfrastructure infrastructure,
+    ContainerApp app,
+    IResourceBuilder<ParameterResource> domainName,
+    IResourceBuilder<ParameterResource> certificateName)
+{
+    var environmentId = infrastructure.GetProvisionableResources().OfType<ProvisioningParameter>()
+        .Single(parameter => parameter.BicepIdentifier.EndsWith(
+            "outputs_azure_container_apps_environment_id", StringComparison.Ordinal));
+    var domain = domainName.AsProvisioningParameter(infrastructure);
+    var certificate = certificateName.AsProvisioningParameter(infrastructure);
+    var hasCertificate = new BinaryExpression(
+        new IdentifierExpression(certificate.BicepIdentifier), BinaryBicepOperator.NotEqual,
+        new StringLiteralExpression(string.Empty));
+
+    app.Configuration.Ingress.CustomDomains.Add(new ContainerAppCustomDomain
+    {
+        Name = new BicepValue<string>(new IdentifierExpression(domain.BicepIdentifier)),
+        BindingType = new BicepValue<ContainerAppCustomDomainBindingType>(new ConditionalExpression(
+            hasCertificate, new StringLiteralExpression("SniEnabled"), new StringLiteralExpression("Disabled"))),
+        CertificateId = new BicepValue<Azure.Core.ResourceIdentifier>(new ConditionalExpression(
+            hasCertificate,
+            new InterpolatedStringExpression(
+            [
+                new IdentifierExpression(environmentId.BicepIdentifier),
+                new StringLiteralExpression("/certificates/"),
+                new IdentifierExpression(certificate.BicepIdentifier)
+            ]),
+            new NullLiteralExpression()))
+    });
+}

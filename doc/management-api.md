@@ -156,7 +156,9 @@ reused.
 Body `{ "Vanity": "aca" }` for one link, or `{}` / no vanity for all. Returns
 `{ "ClickStatsList": [ ClickStatsEntity… ] }`. Each record includes `Datetime`, `ShortUrl`, `Page`, `Host`,
 `ReferrerUrl`, `ReferrerHost`, `Agent`, `Browser`/`BrowserWithVersion`, `Platform`/`PlatformWithVersion`, `IsDesktop`,
-`IsMobile`, `IsCrawler`, mobile device fields, and `Campaign`. This returns every matching row — for all links that can be
+`IsMobile`, `IsCrawler`, mobile device fields, `Campaign`, and the visitor's `Country` (ISO code), `Region`, `City`,
+`Latitude` and `Longitude` (rounded to one decimal place) from Cloudflare (empty for clicks recorded before location
+tracking). This returns every matching row — for all links that can be
 large; prefer `UrlClickStatsByDay` for charts.
 
 ### `POST /api/UrlClickStatsByDay`

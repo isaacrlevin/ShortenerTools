@@ -118,8 +118,9 @@ This is why `src/tools/Test-AcaArtifacts.ps1` asserts the allowlists in the gene
     build a card; see [Link previews](#link-previews).
   - Unknown or archived code → `302` to `DefaultRedirectUrl`.
 - **Scale:** exactly one always-on replica, 0.25 vCPU / 0.5 GiB, so redirects never wait on a cold start.
-- **Custom domain:** in Production the ingress declares your short-link hostname and an existing ACA managed certificate,
-  so redeployments keep the binding.
+- **Custom domain:** in Production the hostname is proxied through Cloudflare, and the ingress declares it with an
+  existing Cloudflare Origin CA certificate uploaded to the ACA environment, so redeployments keep the binding.
+- **Visitor location:** see [Visitor location](#visitor-location).
 - **Receives:** table endpoint, host storage, `DefaultRedirectUrl`, telemetry. **Never** the admin key,
   AI connection, App Configuration credential, or social/email secrets.
 
@@ -227,6 +228,32 @@ destination page's. How the redirect app treats those fetches:
   fragment to `LinkPreviewAgents` (and its robots token to `LinkPreviewRobotsTokens`); the tests in
   `UrlRedirectTests` cover both lists.
 
+### Visitor location
+
+The short-link hostname is proxied through Cloudflare, which adds the visitor's location to each request before it
+reaches the redirect app. `UrlRedirect.ReadVisitorLocation` stores it on the click:
+
+| `ClickStats` column | Header         | Cloudflare setting                                                       |
+|---------------------|----------------|--------------------------------------------------------------------------|
+| `Country`           | `CF-IPCountry` | **Network → IP Geolocation** (on by default). ISO code, e.g. `US`.       |
+| `Region`            | `cf-region`    | **Managed Transforms → Add visitor location headers**                    |
+| `City`              | `cf-ipcity`    | **Managed Transforms → Add visitor location headers**                    |
+| `Latitude`, `Longitude` | `cf-iplatitude`, `cf-iplongitude` | **Managed Transforms → Add visitor location headers** |
+
+- The visitor's IP address is never stored.
+- `XX` (unknown) and `T1` (Tor) countries and blank values are stored as empty; values are capped at 100 characters.
+- Coordinates are stored only as a valid pair, rounded to one decimal place (about 11 km).
+- Clicks recorded before the hostname was proxied, and requests that reach the ACA hostname directly, have no location.
+  Requests that bypass Cloudflare could send forged headers; that only affects statistics.
+- The Statistics page shows a **Click Locations** map (`Shared/ClickMap.razor` + `wwwroot/js/clickMap.js`) with one
+  circle per place, its area proportional to clicks: blue for clicks with coordinates, orange for older clicks that
+  only have a country (drawn at the country's centre from `Shared/CountryCentroids.cs`). The **Country** and **City**
+  tables below it give the exact counts, and a note says how many clicks have no location. Link-preview fetchers report
+  data-centre locations, so keep **Hide crawler clicks** on.
+- The map uses [Leaflet](https://leafletjs.com) 1.9.4, vendored in `wwwroot/lib/leaflet` (BSD-2-Clause, verified against
+  npm's integrity hash), and the standard OpenStreetMap tiles, shown in greyscale. Tile use follows the
+  [OSM tile usage policy](https://operations.osmfoundation.org/policies/tiles/) (attribution shown; fine for one admin user).
+
 ## Data model
 
 All link data lives in **one existing Storage account** (Table service). Tables are created on first use
@@ -236,7 +263,7 @@ All link data lives in **one existing Storage account** (Table service). Tables 
 |----------------|----------------------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------------------|
 | `UrlsDetails`  | First character of code    | Short code (vanity)         | `Url`, `Title`, `Message`, `IsArchived`, `Posted`, optional `CreationId` (idempotency token from SocialPoster drafts).         |
 | `UrlsDetails`  | `1`                        | `KEY`                       | Counter row (`Id`, starts at 1024) used to generate base-36 codes when no vanity is supplied.                                 |
-| `ClickStats`   | Short code                 | New GUID / ticks            | One row per redirect: timestamp, referrer, user agent, page (destination host + path + query).                               |
+| `ClickStats`   | Short code                 | New GUID / ticks            | One row per redirect: timestamp, referrer, user agent, page (destination host + path + query), visitor country/region/city and rounded latitude/longitude. |
 | `PostVersions` | Short code                 | Version key                 | Append-only per-account post text (`Account`, `Text`, `Status`, `ExternalPostId`, …). `{shorturl}` is replaced at post time. |
 
 Rules for new short codes (`ShortcodePolicy`): up to 128 ASCII letters, digits, `-` or `_`; case-sensitive;
@@ -331,7 +358,7 @@ The AppHost branches on two things: **execution mode** (`run` locally vs. `publi
 | Functions host storage          | Azurite emulator                                       | New account                                               | New account                                                             |
 | AI                              | Ollama `llama3` (or Azure OpenAI if opted out)         | None — `CreateDescription` returns 503                    | Azure OpenAI via `ConnectionStrings__chat` + `DeploymentName`           |
 | Management API ingress          | Internal (Aspire)                                      | Internal                                                  | Public HTTPS (API key required)                                         |
-| Redirect custom domain          | —                                                      | None (`.invalid` placeholder URLs by default)             | Declared hostname + existing managed certificate                       |
+| Redirect custom domain          | —                                                      | None (`.invalid` placeholder URLs by default)             | Declared hostname + uploaded Cloudflare Origin CA certificate          |
 | Timers                          | Forced off                                             | Forced off                                                | Off by default; enabled by cutover switches / GitHub workflow           |
 | External posting                | Management API dry-run; timers off                     | Blocked everywhere                                        | Allowed                                                                 |
 | Social/email/AI secrets passed  | Only what you configure                                | None                                                      | All                                                                     |

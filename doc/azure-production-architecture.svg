@@ -166,8 +166,8 @@ text { font-family: "Segoe UI", "Segoe UI Variable", Arial, sans-serif; fill: #e
 <rect x="96" y="690" width="360" height="195" rx="15" fill="#0f2133" stroke="#2b4a63" stroke-width="1.3"/>
 <text x="116" y="718" class="eyebrow" fill="#74e3e8">INGRESS &amp; DOMAIN</text>
 <text x="116" y="744" class="card-title-sm">Custom short-link domain → redirect</text>
-<text x="116" y="770" class="detail">www.isaacl.dev · SNI binding</text>
-<text x="116" y="791" class="detail">ACA managed certificate, referenced by name</text>
+<text x="116" y="770" class="detail">www.isaacl.dev · Cloudflare proxy · SNI</text>
+<text x="116" y="791" class="detail">Uploaded Origin CA cert, referenced by name</text>
 <text x="116" y="812" class="detail">DNS + first certificate: one-time operator step</text>
 <text x="116" y="836" class="small">Declared in the AppHost, so redeploys keep it</text>
 <g transform="translate(418 704)"><circle cx="12" cy="12" r="11" fill="none" stroke="#44d6df" stroke-width="1.6"/><path d="M1 12h22M12 1c5 6 5 16 0 22M12 1c-5 6-5 16 0 22" fill="none" stroke="#44d6df" stroke-width="1.3"/></g>
@@ -255,5 +255,5 @@ text { font-family: "Segoe UI", "Segoe UI Variable", Arial, sans-serif; fill: #e
 <text x="1645.1" y="1002" class="tag" fill="#7ce9ed">NEW</text>
 <text x="1694.1" y="1002" class="small">created by aspire deploy</text>
 <text x="68" y="1041" class="tiny">Every app runs exactly one replica. Timers default to disabled; the production GitHub workflow enables all four after deploy. Staging uses a new data account, internal management API, no custom domain, AI or posting.</text>
-<text x="1852" y="1041" class="tiny" text-anchor="end">SOURCE: src/ShortenerTools.AppHost/Program.cs · 04 NOV 2026</text>
+<text x="1852" y="1041" class="tiny" text-anchor="end">SOURCE: src/ShortenerTools.AppHost/Program.cs · 06 NOV 2026</text>
 </svg>

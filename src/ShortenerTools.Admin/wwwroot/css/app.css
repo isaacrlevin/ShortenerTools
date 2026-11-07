@@ -58,3 +58,45 @@ ul {
     right: 0.75rem;
     top: 0.5rem;
 }
+
+/* Click map (Shared/ClickMap.razor). Text uses ink colours; only the swatches carry the series colour. */
+.click-map {
+    height: 420px;
+    width: 100%;
+    border-radius: 4px;
+    z-index: 0;
+}
+
+/* A quiet grey basemap, so only the data marks carry colour. */
+.click-map .leaflet-tile-pane {
+    filter: grayscale(1) brightness(1.06) contrast(0.85);
+}
+
+.click-map-legend {
+    background: rgba(252, 252, 251, 0.92);
+    color: #0b0b0b;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.5;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.click-map-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.click-map-legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #fcfcfb;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+.click-map-legend-note {
+    color: #52514e;
+    margin-top: 2px;
+}

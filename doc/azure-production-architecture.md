@@ -3,7 +3,7 @@
 ![ShortenerTools production architecture on Azure Container Apps](azure-production-architecture.svg)
 
 This is the presentation view of the **Production** deployment that `aspire deploy --environment Production` creates
-from `src/ShortenerTools.AppHost/Program.cs` (updated November 4, 2026). The SVG is 1920 × 1080 and can be dropped into
+from `src/ShortenerTools.AppHost/Program.cs` (updated November 6, 2026). The SVG is 1920 × 1080 and can be dropped into
 slides as a vector graphic.
 
 For the full resource inventory see [Azure resources](azure-resources.md); for request flows and security boundaries see
@@ -30,7 +30,7 @@ For the full resource inventory see [Azure resources](azure-resources.md); for r
 | `admin`                            | New      | Public HTTPS; Entra-only; Blazor Server + SocialPoster; 1 replica (SocialPoster's scheduler runs in-process).     |
 | `management-api`                   | New      | Public HTTPS in Production; every route needs `X-Admin-Api-Key`; 14 HTTP functions; 1 replica kept warm.         |
 | `shortenertools-scheduled-posts`   | New      | Internal only; `ShortPostTimer` + three Coffee timers; 1 replica; independent default-off gates.                |
-| Ingress & domain                   | Operator + AppHost | `www.isaacl.dev` bound to the redirect app with an ACA managed certificate, referenced by name so redeploys keep it. DNS and the first certificate are one-time manual steps. |
+| Ingress & domain                   | Operator + AppHost | `www.isaacl.dev` proxied through Cloudflare and bound to the redirect app with an uploaded Cloudflare Origin CA certificate, referenced by name so redeploys keep it. DNS, the upload and the first binding are one-time manual steps. |
 | Environment components             | New      | Azure Files volume `socialposter-data` mounted into admin at `/mnt/socialposter-data`; Aspire dashboard; image-pull identity with AcrPull. |
 | URL data storage account           | Existing | `UrlsDetails`, `ClickStats`, `PostVersions`. Attached by name (`AsExisting`); the three Functions identities get Storage Table Data Contributor. Never created or modified by the deployment. |
 | Functions host storage             | New      | Functions runtime leases, timer status and queues; no link data.                                                 |

@@ -1,6 +1,9 @@
 <MudPaper Class="pa-4" Outlined="true">
     <MudText Typo="Typo.h6">@Title</MudText>
-    <MudChart T="double" ChartType="ChartType.Pie" ChartSeries="series" ChartLabels="labels" Width="100%" Height="250px" />
+    @if (ShowChart)
+    {
+        <MudChart T="double" ChartType="ChartType.Pie" ChartSeries="series" ChartLabels="labels" Width="100%" Height="250px" />
+    }
     <MudSimpleTable Dense="true" aria-label="@Title">
         <thead><tr><th>Category</th><th>Clicks</th></tr></thead>
         <tbody>
@@ -16,6 +19,8 @@
     [Parameter, EditorRequired] public string Title { get; set; }
     [Parameter, EditorRequired] public IEnumerable<ClickStatsEntity> Clicks { get; set; }
     [Parameter, EditorRequired] public Func<ClickStatsEntity, string> Category { get; set; }
+    /// <summary>False shows only the table, e.g. when a map already visualizes the same counts.</summary>
+    [Parameter] public bool ShowChart { get; set; } = true;
 
     private string[] labels = Array.Empty<string>();
     private double[] counts = Array.Empty<double>();

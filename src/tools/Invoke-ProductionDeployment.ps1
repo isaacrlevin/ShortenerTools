@@ -154,7 +154,7 @@ try {
         }
     }
     if ([Environment]::GetEnvironmentVariable('Parameters__redirect-certificate-name') -notmatch '^[a-zA-Z0-9][a-zA-Z0-9._-]*$') {
-        throw 'Invalid Parameters__redirect-certificate-name. Supply the existing ACA managed certificate name, not its resource ID.'
+        throw 'Invalid Parameters__redirect-certificate-name. Supply the name of the certificate uploaded to the ACA environment, not its resource ID.'
     }
     # Neither local settings, inherited parameters nor cached deployment state
     # may silently opt in to scheduled posts. The switch is the cutover boundary.

@@ -273,7 +273,7 @@ gh variable set EXISTING_STORAGE_RESOURCE_GROUP --body $dataRg @r
 gh variable set ENTRA_CLIENT_ID                 --body '<admin app client id>' @r
 gh variable set ADMINISTRATOR_OBJECT_ID         --body '<your object id>' @r
 gh variable set SHORT_LINK_DOMAIN               --body 'https://short.example.com' @r
-gh variable set REDIRECT_CERTIFICATE_NAME       --body '<managed certificate name>' @r
+gh variable set REDIRECT_CERTIFICATE_NAME       --body '<uploaded certificate name>' @r
 gh variable set DEFAULT_REDIRECT_URL            --body 'https://example.com' @r
 gh variable set AZURE_OPENAI_DEPLOYMENT_NAME    --body '<deployment name>' @r
 ```
@@ -402,7 +402,7 @@ What it asserts (it writes `*.json` next to each `*.bicep`):
 - **Telemetry:** one workspace-based Application Insights + `PerGB2018` workspace; all four apps get the connection string
   from the module output, a distinct `OTEL_SERVICE_NAME`, and Functions apps use OpenTelemetry mode with `IN_ASPIRE=true`.
 - **Ingress:** redirect public; management API public only in Production; scheduler internal. Production redirect binds
-  exactly one custom domain from `redirect_domain_name` with an SNI binding to the named managed certificate; Staging
+  exactly one custom domain from `redirect_domain_name` with an SNI binding to the named uploaded certificate (`<environment>/certificates/<name>`); Staging
   binds none; no other app binds a custom domain.
 - **Scale:** every app min = max = 1; redirect is 0.25 vCPU / 0.5 GiB.
 - **Isolation:** redirect loads only `UrlRedirect` and has no admin key, App Configuration, AI or social/email settings,
@@ -506,7 +506,7 @@ or Actions → *Aspire Azure Container Apps* → *Run workflow* → branch `main
    .\src\tools\Test-AcaArtifacts.ps1 -ArtifactPath .\aspire-output
    ```
 
-4. **Deploy.** If the short-link domain already has an ACA managed certificate in this environment, use the helper
+4. **Deploy.** If the short-link domain already has an uploaded certificate in this environment, use the helper
    (timers off): `Invoke-ProductionDeployment.ps1 -Mode Deploy -LoadUserSecrets`. For a brand-new environment there is no
    certificate yet — do the [bootstrap deploy](#bootstrap-a-new-environment-without-a-certificate) instead.
 5. **Find the URLs:**
@@ -571,9 +571,13 @@ secret afterwards (set `ProductionDeployment:RedirectCertificateName` instead).
 
 ## Custom domain and certificate
 
-Short links are served from your own domain on the **`shortenertools-functions`** app. DNS and the initial managed
-certificate are manual, one-time steps; after that, the AppHost declares the binding (`ConfigureCustomDomain`) so
-redeploys keep it.
+Short links are served from your own domain on the **`shortenertools-functions`** app, proxied through **Cloudflare**
+(orange cloud) so the redirect receives Cloudflare's visitor location headers (see
+[Visitor location](architecture.md#visitor-location)). The origin certificate is a **Cloudflare Origin CA certificate
+uploaded to the ACA environment** — not an ACA managed certificate, because managed-certificate renewal fails while the
+record is proxied. DNS, the upload and the first binding are manual, one-time steps; after that, the AppHost declares the
+binding (`BindUploadedCertificate` in `Program.cs`, which points at `<environment>/certificates/<name>`) so redeploys
+keep it.
 
 ```powershell
 $app      = 'shortenertools-functions'
@@ -585,25 +589,42 @@ az containerapp show -n $app -g $rg --query properties.configuration.ingress.fqd
 az containerapp show -n $app -g $rg --query properties.customDomainVerificationId -o tsv       # TXT value
 ```
 
-2. At your DNS provider (lower the TTL first if you're moving a live domain):
-   - Subdomain: `CNAME short` → the app FQDN, and `TXT asuid.short` → the verification ID.
+2. In Cloudflare DNS (lower the TTL first if you're moving a live domain):
+   - `CNAME short` → the app FQDN, **DNS only for now**, and `TXT asuid.short` → the verification ID.
    - Apex domain: `A @` → the environment's static IP (`az containerapp env show -n $acaEnv -g $rg --query properties.staticIp`)
      and `TXT asuid` → the verification ID.
+3. In Cloudflare, **SSL/TLS → Origin Server → Create Certificate** for the hostname. Save the certificate as `origin.pem`
+   and the private key as `origin.key` in a folder **outside the repo**, then convert them (Git Bash includes `openssl`;
+   the legacy PBE flags avoid Azure rejecting OpenSSL 3's AES-encrypted PFX files):
+
+   ```bash
+   openssl pkcs12 -export -out origin.pfx -inkey origin.key -in origin.pem \
+     -certpbe PBE-SHA1-3DES -keypbe PBE-SHA1-3DES -macalg sha1 -passout pass:'<pfx password>'
+   ```
 
 ```powershell
-# 3. Add the hostname and issue a free managed certificate
+# 4. Upload the certificate and bind the hostname to it (while the record is still DNS only)
+az containerapp env certificate upload -n $acaEnv -g $rg --certificate-file origin.pfx `
+    --password '<pfx password>' --certificate-name short-example-com-cf-origin
 az containerapp hostname add  -n $app -g $rg --hostname $hostname
-az containerapp hostname bind -n $app -g $rg --hostname $hostname --environment $acaEnv --validation-method CNAME   # HTTP for apex
+az containerapp hostname bind -n $app -g $rg --hostname $hostname --environment $acaEnv `
+    --certificate short-example-com-cf-origin
 
-# 4. The certificate NAME the deployment needs
-az containerapp env certificate list -n $acaEnv -g $rg --managed-certificates-only --query "[].name" -o tsv
+# 5. The certificate NAME the deployment needs (uploaded certificates, not managed ones)
+az containerapp env certificate list -n $acaEnv -g $rg --query "[?type=='Microsoft.App/managedEnvironments/certificates'].name" -o tsv
 ```
 
-5. Save that name as `REDIRECT_CERTIFICATE_NAME` (GitHub) and/or `ProductionDeployment:RedirectCertificateName` (user
+6. Save that name as `REDIRECT_CERTIFICATE_NAME` (GitHub) and/or `ProductionDeployment:RedirectCertificateName` (user
    secrets), make sure `SHORT_LINK_DOMAIN` / `custom-domain` is `https://short.example.com`, and redeploy.
+7. In Cloudflare, set **SSL/TLS** to **Full (strict)**, then switch the `short` CNAME to **Proxied**. Optionally enable
+   **Rules → Transform Rules → Managed Transforms → Add visitor location headers** for region and city. Check that
+   `curl -sI https://short.example.com/` shows `server: cloudflare` and a `cf-ray` header, and that Bot Fight Mode does
+   not challenge the link-preview fetchers (post a link and confirm its card renders).
 
-Managed certificates renew automatically while DNS keeps pointing at the app. If you ever recreate the environment, the
-certificate (and its name) changes — repeat steps 3–5.
+Origin CA certificates are trusted only by Cloudflare, so the hostname must stay **Proxied** — switching it to DNS only
+shows visitors a certificate error. The certificate lasts as long as you chose in Cloudflare (up to 15 years); to
+replace it, upload a new one under a new name, re-run the `hostname bind`, update `REDIRECT_CERTIFICATE_NAME` and
+redeploy. If you ever recreate the environment, repeat steps 4–6.
 
 ## Scheduler cutover and rollback
 

@@ -60,7 +60,7 @@ aspire publish --apphost src\ShortenerTools.AppHost\ShortenerTools.AppHost.cspro
 | 14 | Per-app user-assigned identities (Functions apps) | `ManagedIdentity/userAssignedIdentities`             | New        | New     | —          |
 | 15 | Role assignments                                  | `Authorization/roleAssignments`                       | New        | New     | —          |
 | 16 | URL data storage account (tables)                 | `Storage/storageAccounts`                             | **Existing (referenced)** | **New** | Azurite or live |
-| — | Entra app registration, App Configuration, Azure OpenAI, Communication Services, DNS, managed certificate, deployment identity | various | **Prerequisites** | Entra + App Configuration | Entra (+ optional) |
+| — | Entra app registration, App Configuration, Azure OpenAI, Communication Services, Cloudflare DNS + uploaded Origin CA certificate, deployment identity | various | **Prerequisites** | Entra + App Configuration | Entra (+ optional) |
 
 "New" means created on first deploy and updated in place on later deploys.
 
@@ -125,7 +125,7 @@ All four apps receive `APPLICATIONINSIGHTS_CONNECTION_STRING` from the module's 
 |----------------------------|-------------------------------------|---------------------------------------------------|---------------------------------------|-----------------------------------------------|
 | Image                      | Functions project                   | Functions project                                 | Functions project                     | Admin project                                 |
 | Ingress                    | **External** HTTPS                  | **External** in Production, internal in Staging   | **Internal only**                     | **External** HTTPS                            |
-| Custom domain              | Production: `redirect-domain-name` + managed cert `redirect-certificate-name` (SNI) | — | — | —                                       |
+| Custom domain              | Production: `redirect-domain-name` + uploaded cert `redirect-certificate-name` (SNI) | — | — | —                                       |
 | Replicas (min/max)         | 1 / 1                               | 1 / 1                                             | 1 / 1                                 | 1 / 1                                         |
 | CPU / memory               | **0.25 vCPU / 0.5 GiB**             | Aspire default                                    | Aspire default                        | Aspire default                                |
 | Functions enabled          | `UrlRedirect`                       | 14 HTTP functions                                 | 4 timer functions                     | n/a                                           |
@@ -188,7 +188,7 @@ These are required inputs but are **not** provisioned by Aspire. Setup steps are
 | Azure App Configuration store                 | admin (read/write), Functions (read-only)   | `social-accounts-connection-string`, `social-accounts-readonly-connection-string`   |
 | Azure OpenAI resource + model deployment      | management-api (`CreateDescription`)        | `ConnectionStrings__chat`, `azure-openai-deployment-name`                           |
 | Azure Communication Services (Email) + verified sender domain | X-intent and error emails    | `communication-services-connection-string`, `email-from`, `email-to`               |
-| DNS records + ACA managed certificate         | Redirect custom domain                      | `custom-domain` (URL), `redirect-certificate-name`                                 |
+| Cloudflare DNS + uploaded Origin CA cert      | Redirect custom domain                      | `custom-domain` (URL), `redirect-certificate-name`                                 |
 | Deployment identity (GitHub OIDC) + roles     | GitHub Actions deploy job                   | `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`                       |
 | A strong random API key                       | admin ↔ management-api                      | `admin-api-key`                                                                     |
 
