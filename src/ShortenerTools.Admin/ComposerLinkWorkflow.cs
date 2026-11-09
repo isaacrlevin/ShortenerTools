@@ -27,7 +27,7 @@ public sealed class ComposerLinkWorkflow(IHttpClientFactory clients, ContactServ
     /// SocialPoster posts anything. The host shows a modal, then aborts with ComposerStagedException, which the
     /// composer treats as a quiet stop rather than an error.
     /// </summary>
-    public bool StageForTimer { get; set; }
+    public bool StageForTimer { get; set; } = true;
 
     public async Task<ComposerSubmission> PrepareAsync(ComposerSubmission submission)
     {
