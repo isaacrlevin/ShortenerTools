@@ -69,6 +69,29 @@ public class ComposerLinkWorkflowTests
     }
 
     [TestMethod]
+    public void StagingIsTheDefaultAndSurvivesResetAndLegacyState()
+    {
+        using var handler = new LinkApi();
+        var workflow = new ComposerLinkWorkflow(new Mock<IHttpClientFactory>().Object);
+        Assert.IsTrue(workflow.StageForTimer, "A fresh composer stages for the timer.");
+
+        workflow.StageForTimer = false;
+        workflow.Reset();
+        Assert.IsTrue(workflow.StageForTimer, "Reset returns to the staging default.");
+
+        workflow.StageForTimer = false;
+        workflow.RestoreState("");
+        Assert.IsTrue(workflow.StageForTimer, "An empty draft starts staged.");
+
+        workflow.RestoreState("""{"Vanity":"","Title":"","LastShortUrl":""}""");
+        Assert.IsTrue(workflow.StageForTimer, "State saved before the toggle existed restores as staged.");
+
+        var publishNow = Workflow(handler);
+        workflow.RestoreState(publishNow.CaptureState());
+        Assert.IsFalse(workflow.StageForTimer, "An explicit publish-now choice is kept across reloads.");
+    }
+
+    [TestMethod]
     public async Task StagingWithoutDestinationUrlRefusesInsteadOfPosting()
     {
         using var handler = new LinkApi();
@@ -183,12 +206,13 @@ public class ComposerLinkWorkflowTests
             [Platform.LinkedIn] = "No URL yet"
         }, Media);
 
-    private static ComposerLinkWorkflow Workflow(LinkApi handler)
+    /// <summary>Defaults to the publish-now path; staging tests opt in explicitly.</summary>
+    private static ComposerLinkWorkflow Workflow(LinkApi handler, bool stageForTimer = false)
     {
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(x => x.CreateClient("management")).Returns(() =>
             new HttpClient(handler, false) { BaseAddress = new Uri("https://management.example") });
-        return new ComposerLinkWorkflow(factory.Object);
+        return new ComposerLinkWorkflow(factory.Object) { StageForTimer = stageForTimer };
     }
 
     private sealed class LinkApi : HttpMessageHandler

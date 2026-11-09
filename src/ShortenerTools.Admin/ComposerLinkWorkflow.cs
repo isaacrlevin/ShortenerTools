@@ -239,7 +239,7 @@ public sealed class ComposerLinkWorkflow(IHttpClientFactory clients, ContactServ
         }
     }
 
-    public void Reset() => (Vanity, Title, LastShortUrl, StageForTimer) = ("", "", "", false);
+    public void Reset() => (Vanity, Title, LastShortUrl, StageForTimer) = ("", "", "", true);
 
-    private sealed record SavedOptions(string Vanity, string Title, string LastShortUrl, bool StageForTimer = false);
+    private sealed record SavedOptions(string Vanity, string Title, string LastShortUrl, bool StageForTimer = true);
 }
