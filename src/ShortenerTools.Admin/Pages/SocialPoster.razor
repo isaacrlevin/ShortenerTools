@@ -22,21 +22,32 @@
         <SocialPoster.Components.Pages.Home Workflow="LinkWorkflow" EnableScheduling="false">
             <LinkOptions Context="saveOptions">
                 <MudStack Spacing="2" Class="mt-3">
-                    <MudTextField T="string" Label="Custom shortcode (optional)"
-                                  @bind-Value="LinkWorkflow.Vanity" @bind-Value:after="saveOptions" Immediate="true"
-                                  HelperText="Leave blank to generate a shortcode when you publish or schedule."/>
-                    <MudTextField T="string" Label="Link title (optional)"
-                                  @bind-Value="LinkWorkflow.Title" @bind-Value:after="saveOptions" Immediate="true"/>
-                    <MudSwitch T="bool" Color="Color.Primary" Label="Stage for the timer instead of posting now"
-                               @bind-Value="LinkWorkflow.StageForTimer" @bind-Value:after="saveOptions"/>
-                    <MudText Typo="Typo.caption">Enter a URL above and click Generate to draft your post.
-                        Publish or Schedule creates its short link and uses it in each selected platform's message.
-                    </MudText>
-                    @if (!string.IsNullOrEmpty(LinkWorkflow.LastShortUrl))
+                    <MudSwitch T="bool" Color="Color.Primary" Label="Post instantly without a short link"
+                               @bind-Value="LinkWorkflow.SkipShortening" @bind-Value:after="saveOptions"/>
+                    @if (!LinkWorkflow.SkipShortening)
                     {
-                        <MudText Typo="Typo.caption">Short link:
-                            <MudLink Href="@LinkWorkflow.LastShortUrl"
-                                     Target="_blank">@LinkWorkflow.LastShortUrl</MudLink>
+                        <MudTextField T="string" Label="Custom shortcode (optional)"
+                                      @bind-Value="LinkWorkflow.Vanity" @bind-Value:after="saveOptions" Immediate="true"
+                                      HelperText="Leave blank to generate a shortcode when you publish or schedule."/>
+                        <MudTextField T="string" Label="Link title (optional)"
+                                      @bind-Value="LinkWorkflow.Title" @bind-Value:after="saveOptions" Immediate="true"/>
+                        <MudSwitch T="bool" Color="Color.Primary" Label="Stage for the timer instead of posting now"
+                                   @bind-Value="LinkWorkflow.StageForTimer" @bind-Value:after="saveOptions"/>
+                        <MudText Typo="Typo.caption">Enter a URL above and click Generate to draft your post.
+                            Publish or Schedule creates its short link and uses it in each selected platform's message.
+                        </MudText>
+                        @if (!string.IsNullOrEmpty(LinkWorkflow.LastShortUrl))
+                        {
+                            <MudText Typo="Typo.caption">Short link:
+                                <MudLink Href="@LinkWorkflow.LastShortUrl"
+                                         Target="_blank">@LinkWorkflow.LastShortUrl</MudLink>
+                            </MudText>
+                        }
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption">Publish posts the draft immediately to each selected platform
+                            with the destination URL as typed. No short link is created and clicks are not tracked.
                         </MudText>
                     }
                 </MudStack>

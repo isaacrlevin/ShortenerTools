@@ -8,11 +8,11 @@
   <ItemGroup>
     <PackageVersion Include="AnthonyChu.AzureStaticWebApps.Blazor.Authentication" Version="0.0.2-preview" />
     <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="13.6.4-preview.1.26523.11" />
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.5" />
-    <PackageVersion Include="Aspire.Hosting.Azure.AppContainers" Version="13.6.5" />
-    <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="13.6.5" />
-    <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="13.6.5" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="13.6.5" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="17.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.AppContainers" Version="17.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="17.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="17.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="17.0.0" />
     <PackageVersion Include="Azure.AI.OpenAI" Version="2.9.0-beta.1" />
     <PackageVersion Include="Azure.Communication.Email" Version="1.1.0" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.13.0" />
@@ -39,29 +39,30 @@
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs" Version="6.8.2" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.5.5" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
-    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.11.0" />
-    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.AzureAppConfiguration" Version="8.7.0-preview" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.14.1" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="11.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="11.0.0" />
     <PackageVersion Include="Microsoft.NET.ILLink.Tasks" Version="10.0.11" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
     <PackageVersion Include="Microsoft.NET.Sdk.WebAssembly.Pack" Version="10.0.11" />
     <PackageVersion Include="Moq" Version="4.21.0" />
-    <PackageVersion Include="MSTest.TestAdapter" Version="4.5.2" />
-    <PackageVersion Include="MSTest.TestFramework" Version="4.5.2" />
-    <PackageVersion Include="MudBlazor" Version="9.12.0" />
+    <PackageVersion Include="MSTest.TestAdapter" Version="4.5.3" />
+    <PackageVersion Include="MSTest.TestFramework" Version="4.5.3" />
+    <PackageVersion Include="MudBlazor" Version="9.14.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="14.0.1-beta2" />
     <PackageVersion Include="OllamaSharp" Version="5.5.2" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.21.0-rc.1" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.21.0-rc.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.20.2" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.20.2" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.20.1" />
-    <PackageVersion Include="SocialPoster.Components" Version="0.7.2" />
-    <PackageVersion Include="SocialPoster.Posting" Version="0.7.2" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.21.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.21.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.21.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.21.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.21.0" />
+    <PackageVersion Include="SocialPoster.Components" Version="0.7.3" />
+    <PackageVersion Include="SocialPoster.Posting" Version="0.7.3" />
+    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
     <PackageVersion Include="System.Private.Uri" Version="4.3.2" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="4.3.1" />
     <PackageVersion Include="TweetinviAPI" Version="5.0.4" />

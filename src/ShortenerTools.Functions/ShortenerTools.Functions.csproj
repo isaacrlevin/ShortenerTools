@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Azure.Functions.Sdk">
     <PropertyGroup>
         <UserSecretsId>ec466037-9a72-4ed2-ab84-28c517f1b122</UserSecretsId>
-        <!-- While .NET 11 is prerelease, this image's runtime (DOTNET_VERSION) must exactly match the SDK pinned in
-             global.json, or the isolated worker exits with code 150 and the host crash-loops. 4.1055.300-3 ships
-             11.0.0-rc.3.26522.148. After GA, any 11.0.x image works (e.g. floating 4-dotnet-isolated11.0-azurelinux3). -->
-        <ContainerBaseImage>mcr.microsoft.com/azure-functions/dotnet-isolated:4.1055.300-3-dotnet-isolated11.0-azurelinux3</ContainerBaseImage>
+        <!-- .NET 11 is now GA (local SDK 11.0.100), so the image's runtime no longer needs to match an exact
+             prerelease SDK build. Use the floating GA tag; pinning to the old rc.3 build (4.1055.300-3-...) makes
+             the isolated worker exit with code 150 and the host crash-loop. -->
+        <ContainerBaseImage>mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated11.0-azurelinux3</ContainerBaseImage>
         <!-- The SDK defaults this image to the non-root "app" user (UID 1654), but /azure-functions-host is root-owned
              (755) and the host creates /azure-functions-host/Secrets at startup on ACA. As UID 1654 that fails with
              "Access to the path '/azure-functions-host/Secrets' is denied" and every request returns 503. Run as root,

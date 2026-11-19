@@ -11,6 +11,7 @@
         <PackageReference Include="Newtonsoft.Json"/>
         <PackageReference Include="SocialPoster.Components" />
         <PackageReference Include="SocialPoster.Posting" />
+        <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\ShortenerTools.Core\ShortenerTools.Core.csproj"/>

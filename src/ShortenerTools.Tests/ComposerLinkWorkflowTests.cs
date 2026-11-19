@@ -114,6 +114,54 @@ public class ComposerLinkWorkflowTests
     }
 
     [TestMethod]
+    public async Task SkipShorteningPostsInstantlyWithoutCreatingALink()
+    {
+        using var handler = new LinkApi();
+        var workflow = Workflow(handler);
+        workflow.SkipShortening = true;
+        workflow.StageForTimer = true; // Must not win over instant posting.
+        var submission = Submission();
+
+        var result = await workflow.PrepareAsync(submission);
+
+        Assert.AreSame(submission, result);
+        Assert.AreEqual(0, handler.Requests.Count);
+        Assert.AreEqual("", workflow.LastShortUrl);
+    }
+
+    [TestMethod]
+    public async Task SkipShorteningWithCustomShortcodeRefusesInsteadOfPosting()
+    {
+        using var handler = new LinkApi();
+        var workflow = Workflow(handler);
+        workflow.SkipShortening = true;
+        workflow.Vanity = "my-event";
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => workflow.PrepareAsync(Submission()));
+
+        Assert.AreEqual(0, handler.Requests.Count);
+    }
+
+    [TestMethod]
+    public void SkipShorteningStateSurvivesResetAndRestore()
+    {
+        using var handler = new LinkApi();
+        var workflow = Workflow(handler);
+        workflow.SkipShortening = true;
+
+        workflow.Reset();
+        Assert.IsFalse(workflow.SkipShortening, "Reset returns to posting through the shortener.");
+
+        workflow.SkipShortening = true;
+        var reloaded = Workflow(handler);
+        reloaded.RestoreState(workflow.CaptureState());
+        Assert.IsTrue(reloaded.SkipShortening);
+
+        reloaded.RestoreState("""{"Vanity":"","Title":"","LastShortUrl":""}""");
+        Assert.IsFalse(reloaded.SkipShortening, "State saved before the toggle existed restores without it.");
+    }
+
+    [TestMethod]
     public async Task ConflictStopsSubmissionWithoutChangingDraft()
     {
         using var handler = new LinkApi { Status = HttpStatusCode.Conflict };

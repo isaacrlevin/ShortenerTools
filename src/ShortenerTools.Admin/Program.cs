@@ -10,6 +10,12 @@ using SocialPoster.Core;
 using SocialPoster.Core.Scheduling;
 using ShortenerTools.Admin;
 
+// Forces SQLitePCLRaw's native provider registration on the main thread before any
+// background service (SocialPoster's scheduler) touches Microsoft.Data.Sqlite; without
+// this, concurrent first access from a background thread throws a FileNotFoundException
+// for SQLitePCLRaw.core even though the assembly is present.
+SQLitePCL.Batteries_V2.Init();
+
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults(options => options.Retry.DisableForUnsafeHttpMethods());
 builder.Services.AddMudServices();

@@ -29,9 +29,22 @@ public sealed class ComposerLinkWorkflow(IHttpClientFactory clients, ContactServ
     /// </summary>
     public bool StageForTimer { get; set; } = true;
 
+    /// <summary>
+    /// When set, Publish skips the management API entirely and posts the draft as-is, destination URL included,
+    /// for instant posting. Takes precedence over StageForTimer, which requires a short link to stage.
+    /// </summary>
+    public bool SkipShortening { get; set; }
+
     public async Task<ComposerSubmission> PrepareAsync(ComposerSubmission submission)
     {
         var source = submission.SourceUrl.Trim();
+        if (SkipShortening)
+        {
+            if (!string.IsNullOrWhiteSpace(Vanity))
+                throw new InvalidOperationException("Turn off instant posting before choosing a custom shortcode.");
+            return submission;
+        }
+
         if (string.IsNullOrEmpty(source))
         {
             // Staging must never fall through to an immediate post.
@@ -220,7 +233,8 @@ public sealed class ComposerLinkWorkflow(IHttpClientFactory clients, ContactServ
         Uri.TryCreate(left, UriKind.Absolute, out var a) && Uri.TryCreate(right, UriKind.Absolute, out var b)
                                                          && a.AbsoluteUri == b.AbsoluteUri;
 
-    public string CaptureState() => JsonSerializer.Serialize(new SavedOptions(Vanity, Title, LastShortUrl, StageForTimer));
+    public string CaptureState() =>
+        JsonSerializer.Serialize(new SavedOptions(Vanity, Title, LastShortUrl, StageForTimer, SkipShortening));
 
     public void RestoreState(string state)
     {
@@ -233,13 +247,15 @@ public sealed class ComposerLinkWorkflow(IHttpClientFactory clients, ContactServ
             Title = options.Title ?? "";
             LastShortUrl = options.LastShortUrl ?? "";
             StageForTimer = options.StageForTimer;
+            SkipShortening = options.SkipShortening;
         }
         catch (JsonException)
         {
         }
     }
 
-    public void Reset() => (Vanity, Title, LastShortUrl, StageForTimer) = ("", "", "", true);
+    public void Reset() => (Vanity, Title, LastShortUrl, StageForTimer, SkipShortening) = ("", "", "", true, false);
 
-    private sealed record SavedOptions(string Vanity, string Title, string LastShortUrl, bool StageForTimer = true);
+    private sealed record SavedOptions(string Vanity, string Title, string LastShortUrl, bool StageForTimer = true,
+        bool SkipShortening = false);
 }
