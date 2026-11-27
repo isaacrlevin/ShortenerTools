@@ -59,12 +59,39 @@ public sealed class SocialPosterPublisher(
         if (credentials.Values.Any(string.IsNullOrWhiteSpace))
         {
             // Without X API credentials, fall back to emailing a pre-filled intent link.
-            var intentUrl = TwitterIntentHelper.BuildIntentUrl(text, settings.TwitterViaHandle);
-            await emailService.SendTwitterIntentEmail($"Ready to post on X: {post.Title}", intentUrl, text);
+            await SendIntentAsync(post, text);
             return;
         }
 
-        await PostAsync(Platform.X, text);
+        try
+        {
+            await PostAsync(Platform.X, text);
+        }
+        catch (Exception exception) when (IsPaymentRequired(exception))
+        {
+            logger.LogWarning(exception,
+                "X API refused {PostKey} (credits depleted); falling back to an intent link.", post.Key);
+            await SendIntentAsync(post, text);
+        }
+    }
+
+    private Task SendIntentAsync(SocialPost post, string text) =>
+        emailService.SendTwitterIntentEmail($"Ready to post on X: {post.Title}",
+            TwitterIntentHelper.BuildIntentUrl(text, settings.TwitterViaHandle), text);
+
+    internal static bool IsPaymentRequired(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is HttpRequestException { StatusCode: System.Net.HttpStatusCode.PaymentRequired }
+                || current.Message.Contains("402 Payment Required", StringComparison.OrdinalIgnoreCase)
+                || current.Message.Contains("credits-depleted", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private async Task PostAsync(Platform platform, string text)
